@@ -1,0 +1,945 @@
+<template>
+  <div class="app-container">
+    <el-tabs :tab-position="tabPosition" @tab-click="handleClickTopic">
+        <el-tab-pane v-for="item in topicMsg" :key="item.t_id">
+            <span slot="label">{{item.t_name}}</span>
+
+            <div v-if="permissionAdd">
+                <el-button type="primary" @click="handleAdd" class="AddVillageBtn"><i class="el-icon-edit"></i> 新增</el-button>
+            </div>
+            <el-cascader
+                :options="options"
+                @change="onProvincesChange"
+                @focus="getCategory"
+                :props="props"
+                placeholder="请选择栏目"
+                >
+            </el-cascader>
+            <el-button type="primary" style="margin-left: 10px" @click="getTableData">查询</el-button>
+
+            <el-table
+                v-if="permissionShow"
+                v-loading="loading"
+                element-loading-text="拼命加载中"
+                element-loading-spinner="el-icon-loading"
+                element-loading-background="rgba(0, 0, 0, 0.8)"
+                border
+                :data="tableData"
+                style="width: 100%;margin-top: 10px;"
+                height="500">
+                    <el-table-column
+                    prop="a_create_time"
+                    label="创建时间"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_update_time"
+                    label="更新时间"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_title"
+                    label="标题"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_istop"
+                    label="置顶"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_top_time"
+                    label="置顶时间"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_status"
+                    label="发布"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_aduit_status"
+                    label="审核状态"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_aduit_time"
+                    label="审核时间"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_aduit_user"
+                    label="审核用户"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_create_user"
+                    label="登记用户"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="a_update_user"
+                    label="修改用户"
+                    sortable
+                    align="center"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                        fixed="right"
+                        label="操作"
+                        align="center"
+                        width="150">
+                        <template slot-scope="scope">
+                            <el-button v-if="permissionDetail" @click="handleDetail(scope.row)" type="text" size="small">查看</el-button>
+                            <el-button v-if="permissionEdit" @click="handleEdit(scope.row)" type="text" size="small">编辑</el-button>
+                            <el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small">删除</el-button>
+                        </template>
+                    </el-table-column>
+            </el-table>
+
+
+            
+        </el-tab-pane>
+    </el-tabs>
+
+    <!-- 查看详情的模态框 -->
+    <el-dialog
+        :visible.sync="DetailDialogTableVisible"
+        v-elDragDialog
+        title="文章详情"
+        :close-on-click-modal="false">
+        <!-- 表单 -->
+        <el-form ref="DetailForm" :model="DetailForm" label-width="80px">
+            <el-form-item label="标题">
+                <el-input v-model="DetailForm.article.a_title" readonly></el-input>
+            </el-form-item>
+            <el-form-item v-for="item in DetailForm.fields" :key="item.f_key" :label="item.f_name">
+                <el-input v-if="item.f_type==0" v-model="item.f_value" readonly></el-input>
+                <div v-if="item.f_type==1" style="width: 200px;height:150px;">
+                    <img :src="item.f_value" alt="" width="100%" height="100%">
+                </div>
+                <quill-editor ref="DetailTextEditor"
+                    v-if="item.f_type==2"
+                    :content="item.f_value"
+                    :options = "DetailEditorOption"
+                    readonly
+                    disabled>
+                </quill-editor>
+                <div v-if="item.f_type==4" style="width:500px;height:300px;">
+                    <!-- <video :src="item.f_value" width="100%"></video> -->
+                    <video controls="controls" width="100%">
+                        <source :src="item.f_value" type="video/ogg">
+                        <source :src="item.f_value" type="video/webm">
+                        <source :src="item.f_value" type="video/mp4">
+                    </video>
+                </div>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+
+
+    <!-- 编辑的模态框 -->
+    <el-dialog
+        :visible.sync="EditDialogTableVisible"
+        v-elDragDialog
+        title="文章编辑"
+        top="20px"
+        :close-on-click-modal="false">
+        <el-form ref="EditForm" :model="EditForm" label-width="80px" :rules="EditRules">
+            <el-form-item label="标题" prop="article.a_title">
+                <el-input v-model="EditForm.article.a_title"></el-input>
+            </el-form-item>
+            <el-form-item v-for="item in EditForm.fields" :key="item.f_key" :label="item.f_name">
+                <el-input v-if="item.f_type==0" v-model="item.f_value"></el-input> 
+                <el-upload
+                    v-if="item.f_type==1"
+                    :action="uploadAddressCover"
+                    list-type="picture-card"
+                    name="file"
+                    :limit="1"
+                    ref="EditUpload"
+                    :on-success="successEditUploadCover"
+                    :on-remove="removeEditUploadCover"
+                    :file-list="[{url:item.f_value}]">
+                    <i class="el-icon-plus"></i>
+                </el-upload>
+                <quill-editor ref="EditTextEditor"
+                    v-if="item.f_type==2"
+                    :content="item.f_value"
+                    :options = "EditEditorOption"
+                    v-model="item.f_value"
+                    >
+                </quill-editor>
+                <div v-if="item.f_type==4" style="width:500px;height:300px;">
+                    <video controls="controls" width="100%">
+                        <source :src="item.f_value" type="video/ogg">
+                        <source :src="item.f_value" type="video/webm">
+                        <source :src="item.f_value" type="video/mp4">
+                    </video>
+                </div>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="submitEditForm('EditForm')">提交</el-button>
+                <el-button @click="cancleEditForm('EditForm')">取消</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+
+    <!-- 新建的时候弹出选择项目的模态框 -->
+    <el-dialog
+        :visible.sync="AddDialogTableVisibleModel"
+        v-elDragDialog
+        title="栏目"
+        :close-on-click-modal="false"
+        width="400px">
+        <el-cascader
+            :options="AddOptions"
+            @change="AddOnProvincesChange"
+            @focus="AddGetCategory"
+            :props="AddProps"
+            placeholder="请选择栏目"
+            >
+        </el-cascader>
+        <el-button type="primary" style="margin-left: 10px" @click="AddInformation">新建</el-button>
+    </el-dialog>
+
+    <!-- 新建的模态框 -->
+    <el-dialog
+        :visible.sync="AddDialogTableVisible"
+        v-elDragDialog
+        title="文章新建"
+        top="20px"
+        :close-on-click-modal="false">
+        <el-form ref="AddForm" :model="AddForm" label-width="80px" :rules="AddRules">
+            <el-form-item label="标题" prop="article.a_title">
+                <el-input v-model="AddForm.article.a_title"></el-input>
+            </el-form-item>
+            <el-form-item v-for="item in AddForm.fields" :key="item.f_key" :label="item.f_name">
+                <el-input v-if="item.f_type==0" v-model="item.f_value"></el-input> 
+                <el-upload
+                    v-if="item.f_type==1"
+                    :action="uploadAddressCover"
+                    list-type="picture-card"
+                    name="file"
+                    :limit="1"
+                    ref="AddUpload"
+                    :on-success="successAddUploadCover"
+                    :on-remove="removeAddUploadCover">
+                    <i class="el-icon-plus"></i>
+                </el-upload>
+                <quill-editor ref="AddTextEditor"
+                    v-if="item.f_type==2"
+                    :options = "AddEditorOption"
+                    v-model="item.f_value"
+                    >
+                </quill-editor>
+                <div v-if="item.f_type==4" style="width:500px;height:300px;">
+                    <video controls="controls" width="100%">
+                        <source :src="item.f_value" type="video/ogg">
+                        <source :src="item.f_value" type="video/webm">
+                        <source :src="item.f_value" type="video/mp4">
+                    </video>
+                </div>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="submitAddForm('AddForm')">提交</el-button>
+                <el-button @click="cancleAddForm('AddForm')">取消</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 树形表格
+// import treeTable from '@/components/TreeTable'
+
+import elDragDialog from '@/directive/el-dragDialog';
+
+// 时间过滤器
+import {formatDate} from '@/filter/date.js';
+
+// 引入富文本框插件
+import { quillEditor } from 'vue-quill-editor'
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.snow.css'
+import 'quill/dist/quill.bubble.css'
+
+export default {
+  name: 'CustomTreeTableDemo',
+  directives: { elDragDialog }, // 拖拽指令
+//   components: { treeTable },
+    components : {
+        quillEditor
+    },
+  data() {
+    return {
+      tabPosition: 'left', // 选项卡位置
+      topicMsg : [], // 权限专题tab选项卡
+      topicId: '', // 默认进来之后的专题ID为获取到专题的第一条
+      c_topic: '', // 专题ID
+      columnData:{},
+
+      total: 0, // 分页总条数
+      start: 0, // 默认第一页
+      limit: 10,  // 每页10条
+
+
+      // 显示文章
+      showDialogTableVisible : false,
+      tableData : [],
+
+
+      options: [],
+      props : {
+          value: 'c_id',
+          label:'c_name',
+          children: 'c_children'
+      },
+
+      categoryId : '' , // 获取最后一级时的栏目id值
+
+
+      loading : true, // 加载条
+    //   tableData : [],
+
+      permissionShow: false, // 默认为false,根据权限是否显示
+      permissionDetail: false, // 默认为false,根据权限是否查看
+      permissionEdit: false, // 默认为false,根据权限是否修改
+      permissionDelete: false, // 默认为false,根据权限是否删除
+      permissionAdd: false, // 默认为false,根据权限是否新建
+
+
+        // 查看详情的数据
+        DetailDialogTableVisible : false, // 详情框默认的模态框
+        DetailForm: {
+            article : {
+                a_title : '',
+                a_id : ''
+            },
+            fields : []
+        },
+        DetailEditorOption : {
+          theme: 'snow',
+          boundary: document.body, 
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'header': 1 }, { 'header': 2 }],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              [{ 'script': 'sub' }, { 'script': 'super' }],
+              [{ 'indent': '-1' }, { 'indent': '+1' }],
+              [{ 'direction': 'rtl' }],
+              [{ 'size': ['small', false, 'large', 'huge'] }],
+              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'font': [] }],
+              [{ 'align': [] }],
+              ['clean'],
+              ['link', 'image', 'video']
+            ]
+          },
+          placeholder: 'Insert text here ...',
+          readOnly: true
+        },
+
+        // 编辑的操作
+        EditDialogTableVisible : false, // 编辑框默认的模态框
+        EditRules : {
+            article : {
+                a_title : [{required: true,message : '请输入标题', trigger: 'blur'}]
+            }
+        },
+        EditForm : {
+            article : {
+                a_title : '',
+                a_id : ''
+            },
+            fields : []
+        },
+        EditEditorOption : {
+          theme: 'snow',
+          boundary: document.body, 
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'header': 1 }, { 'header': 2 }],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              [{ 'script': 'sub' }, { 'script': 'super' }],
+              [{ 'indent': '-1' }, { 'indent': '+1' }],
+              [{ 'direction': 'rtl' }],
+              [{ 'size': ['small', false, 'large', 'huge'] }],
+              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'font': [] }],
+              [{ 'align': [] }],
+              ['clean'],
+              ['link', 'image', 'video']
+            ]
+          },
+          placeholder: 'Insert text here ...',
+          readOnly: true
+        },
+
+        uploadAddressCover : `${api.dev}/p/main/upload/image`,  // 上传图片的地址
+
+        // 新建的数据
+        AddDialogTableVisibleModel : false,
+        AddDialogTableVisible : false,
+        AddRules : {
+            article : {
+                a_title : [{required: true,message : '请输入标题', trigger: 'blur'}]
+            }
+        },
+        AddForm : {
+            article : {
+                a_title : '',
+                a_id : ''
+            },
+            fields : []
+        },
+        AddEditorOption : {
+          theme: 'snow',
+          boundary: document.body, 
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'header': 1 }, { 'header': 2 }],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              [{ 'script': 'sub' }, { 'script': 'super' }],
+              [{ 'indent': '-1' }, { 'indent': '+1' }],
+              [{ 'direction': 'rtl' }],
+              [{ 'size': ['small', false, 'large', 'huge'] }],
+              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'font': [] }],
+              [{ 'align': [] }],
+              ['clean'],
+              ['link', 'image', 'video']
+            ]
+          },
+          placeholder: 'Insert text here ...',
+          readOnly: true
+        },
+
+
+        AddOptions: [],
+        AddProps : {
+            value: 'c_id',
+            label:'c_name',
+            children: 'c_children'
+        },
+        AddCategoryId : '' ,
+    }
+  },
+  methods: {
+    // 获取权限
+    getSubPermission() {
+        this.$http.get(`${api.dev}/p/permission/getSub`,{params:{access_token:getToken(), p_id: this.$route.params.id}}).then(res => {
+            if(res.body.code == 200) {
+                res.body.content.forEach(item => {
+                    if(item.p_name.indexOf('显示') > -1) {
+                       this.permissionShow = true;
+                    }else if(item.p_name.indexOf('查看') > -1) {
+                        this.permissionDetail = true
+                    }else if(item.p_name.indexOf('修改') > -1) {
+                        this.permissionEdit = true;
+                    }else if(item.p_name.indexOf('删除') > -1) {
+                        this.permissionDelete = true;
+                    }else if(item.p_name.indexOf('新建') > -1) {
+                        this.permissionAdd = true;
+                    }
+                })
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '';
+                },2000)
+            }
+        })
+    },
+    getTopic() {
+        this.$http.get(`${api.dev}/p/main/strategy/findTopicWithPermission`,{params:{access_token: getToken()}}).then(res => {
+            if(res.body.code == 200) {
+                this.topicMsg = res.body.content;
+                this.topicId = res.body.content[0].t_id;
+
+                this.getFirstTopic()
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '';
+                },2000)
+            }
+        })
+    },
+    // 点击tab卡获取对应的栏目信息
+    handleClickTopic(tab,event) {
+        this.topicId = this.topicMsg[tab.index].t_id; // 获取专题索引值的对应的ID
+        
+        this.loading = true;
+        this.options = [];
+        this.tableData = [];
+        this.getFirstTopic(); // 切换时获取切换到的那个专题的第一个最后的栏目id值
+        this.AddOptions = [];
+    },
+    // 已进入就页面后需要获取第一条专题的栏目信息
+    getFirstTopic() {
+        this.$http.get(`${api.dev}/p/main/strategy/findCategoryWithPermission`,{params: {access_token: getToken(), c_topic : this.topicId}}).then(res => {
+            if(res.body.code == 200) {
+                var category = res.body.content[0];
+                while(category.hasOwnProperty('c_children')){
+                    category = category.c_children[0];
+                }
+                this.categoryId = category.c_id;
+
+                this.$http.get(`${api.dev}/p/main/strategy/show`,{params: {access_token : getToken() , categoryId:this.categoryId , start:this.start , limit : this.limit}}).then(res => {
+                    if(res.body.code == 200) {
+                        // 先过滤
+                        res.body.content.records.forEach(item => {
+                            if(item.a_status == 1) {
+                                item.a_status = '已发布'
+                            }else{
+                                item.a_status = '未发布'
+                            }
+
+                            item.a_top_time = formatDate(new Date(item.a_top_time) , 'yyyy-MM-dd');
+                            item.a_aduit_time = formatDate(new Date(item.a_aduit_time) , 'yyyy-MM-dd');
+                            item.a_create_time = formatDate(new Date(item.a_create_time) , 'yyyy-MM-dd');
+                            item.a_update_time = formatDate(new Date(item.a_update_time) , 'yyyy-MM-dd');
+                        })
+                        this.tableData = res.body.content.records;
+                        this.loading = false;
+                    }else if(res.body.code == 500) {
+                        this.$message({
+                            message: res.body.msg,
+                            type: 'error'
+                        });
+                        removeToken();
+                        setTimeout(function () {
+                            window.location.href = '';
+                        },2000)
+                    }
+                })
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '';
+                },2000)
+            }
+        })
+    },
+    // 获取最后一级的id值
+    onProvincesChange(item) {
+        for(var i = 0 ; i < item.length ; i++) {
+            if(i == item.length - 1) {
+                this.categoryId = item[i];
+            }
+        }
+    },
+    AddOnProvincesChange(item) {
+        for(var i = 0 ; i < item.length ; i++) {
+            if(i == item.length - 1) {
+                this.AddCategoryId = item[i];
+            }
+        }
+    },
+    getCategory(e) {
+        this.$http.get(`${api.dev}/p/main/strategy/findCategoryWithPermission`,{params: {access_token:getToken(),c_topic:this.topicId}}).then(res => {
+            if(res.body.code == 200) {
+                this.options = res.body.content;
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '';
+                },2000)
+            }
+        })
+    },
+    AddGetCategory(e) {
+        this.$http.get(`${api.dev}/p/main/strategy/findCategoryWithPermission`,{params: {access_token:getToken(),c_topic:this.topicId}}).then(res => {
+            if(res.body.code == 200) {
+                this.AddOptions = res.body.content;
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '';
+                },2000)
+            }
+        })
+    },
+    AddInformation() {
+        if(this.AddCategoryId == '') {
+            this.$message({
+                message: '请输入栏目',
+                type: 'warning'
+            });
+            return false;
+        }
+        this.$http.get(`${api.dev}/p/main/category/select`,{params: {access_token:getToken(),c_id : this.AddCategoryId}}).then(res => {
+            if(res.body.code == 200) {
+                if(res.body.content.category.c_single == 0 && res.body.content.category.c_article != '') {
+                    // 开启加载器
+                    const loading = this.$loading({
+                        lock: true,
+                        text: 'Loading',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    this.$http.get(`${api.dev}/p/main/strategy/select`,{params: {access_token : getToken(),a_id : res.body.content.category.c_article,c_id:this.categoryId}}).then(res => {
+                        if(res.body.code == 200) {
+                            loading.close();
+                            this.EditDialogTableVisible = true;
+
+                            this.EditForm.article.a_title = res.body.content.article.a_title;
+                            this.EditForm.article.a_id = res.body.content.article.a_id;
+                            this.EditForm.fields = res.body.content.fields;
+                        }else if(res.body.code == 500) {
+                            this.$message({
+                                message: res.body.msg,
+                                type: 'error'
+                            });
+                            removeToken();
+                            setTimeout(function () {
+                                window.location.href = '';
+                            },2000)
+                        }
+                    })
+                }else {
+                    this.AddDialogTableVisible = true;
+                    this.AddForm.fields = res.body.content.fields;
+                }
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '';
+                },2000)
+            }
+        })
+    },
+    getTableData() {
+        if(this.categoryId == '') {
+            this.$message({
+                message: '请输入栏目',
+                type: 'warning'
+            });
+            return false;
+        }
+        this.loading = true;
+        this.$http.get(`${api.dev}/p/main/strategy/show`,{params: {access_token : getToken() , categoryId:this.categoryId , start:this.start , limit : this.limit}}).then(res => {
+           if(res.body.code == 200) {
+               // 先过滤
+               res.body.content.records.forEach(item => {
+                   if(item.a_status == 1) {
+                       item.a_status = '已发布'
+                   }else{
+                       item.a_status = '未发布'
+                   }
+
+                   item.a_top_time = formatDate(new Date(item.a_top_time) , 'yyyy-MM-dd');
+                   item.a_aduit_time = formatDate(new Date(item.a_aduit_time) , 'yyyy-MM-dd');
+                   item.a_create_time = formatDate(new Date(item.a_create_time) , 'yyyy-MM-dd');
+                   item.a_update_time = formatDate(new Date(item.a_update_time) , 'yyyy-MM-dd');
+               })
+               this.tableData = res.body.content.records;
+               this.loading = false;
+           }else if(res.body.code == 500) {
+            this.$message({
+                message: res.body.msg,
+                type: 'error'
+            });
+            removeToken();
+            setTimeout(function () {
+                window.location.href = '';
+            },2000)
+           }
+        })
+    },
+    // 处理查看
+    handleDetail(row) {
+            // 开启加载器
+            const loading = this.$loading({
+                    lock: true,
+                    text: 'Loading',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+            });
+          this.$http.get(`${api.dev}/p/main/strategy/select`,{params: {access_token: getToken(),a_id:row.a_id,c_id:this.categoryId}}).then(res => {
+              if(res.body.code == 200) {
+                loading.close();
+                this.DetailDialogTableVisible = true;
+
+                this.DetailForm.article.a_title = res.body.content.article.a_title;
+                this.DetailForm.fields = res.body.content.fields;
+              }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '';
+                },2000)
+              }
+          })
+    },
+    // 处理编辑
+    handleEdit(row){
+            // 开启加载器
+            const loading = this.$loading({
+                lock: true,
+                text: 'Loading',
+                spinner: 'el-icon-loading',
+                background: 'rgba(0, 0, 0, 0.7)'
+            });
+            this.$http.get(`${api.dev}/p/main/strategy/select`,{params: {access_token : getToken(),a_id : row.a_id,c_id:this.categoryId}}).then(res => {
+                if(res.body.code == 200) {
+                    loading.close();
+                    this.EditDialogTableVisible = true;
+
+                    this.EditForm.article.a_title = res.body.content.article.a_title;
+                    this.EditForm.article.a_id = res.body.content.article.a_id;
+                    this.EditForm.fields = res.body.content.fields;
+                }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+                }
+            })
+    },
+    
+    // 处理删除
+    handleDelete(row) {
+        this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+        }).then(() => {
+            this.loading = true;
+            this.$http.post(`${api.dev}/p/main/strategy/delete`,{access_token:getToken(),a_id:row.a_id},{emulateJSON: true}).then(res => {
+                if(res.body.code == 200) {
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.getTableData();
+                }else if(res.body.code == 500) {
+                    this.$message({
+                        message : res.body.msg,
+                        type : 'error'
+                    })
+                    removeToken();
+                    setTimeout(function () {
+                    window.location.href = '';
+                    },2000)
+                }
+            })
+        })
+    },
+    
+    submitEditForm(formName) {
+        this.$refs[formName].validate((valid) => {
+            if(valid){
+                // 开启加载器
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在保存中...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+                var formdata = new FormData();
+                formdata.append('access_token',getToken());
+                formdata.append('a_id',this.EditForm.article.a_id);
+                formdata.append('a_title',this.EditForm.article.a_title);
+                for(var i = 0 ; i < this.EditForm.fields.length ; i++) {
+                    formdata.append(this.EditForm.fields[i].f_key,this.EditForm.fields[i].f_value);
+                }
+                this.$http.post(`${api.dev}/p/main/strategy/update`,formdata,{emulateJSON:true}).then(res => {
+                    if(res.body.code == 200) {
+                        loading.close();
+                        this.EditDialogTableVisible = false;
+                        this.$refs[formName].clearValidate(); // 清除表单验证规则
+                        this.$message({
+                            message: res.body.msg,
+                            type: 'success'
+                        });
+                        // this.loading = true;
+                        this.getTableData();
+                    }else if(res.body.code == 500) {
+                        this.$message({
+                            message: res.body.msg,
+                            type: 'error'
+                        });
+                    }
+                })
+            }else {
+                console.log('submit error');
+                return false;
+            }
+        })
+    },
+    cancleEditForm(formName) {
+      this.EditDialogTableVisible = false;
+      this.$refs[formName].clearValidate(); // 清除表单验证规则
+    },
+    successEditUploadCover(res,file,fileList) {
+        this.EditForm.fields.forEach(item => {
+            if(item.f_type == 1) {
+                item.f_value = `${api.address}${res.content}`
+            }
+        })
+    },
+    removeEditUploadCover(file,fileList) {
+        this.EditForm.fields.forEach(item => {
+            if(item.f_type == 1) {
+                item = []
+                item.f_value = ''
+            }
+        })
+    },
+    // 处理新增
+    handleAdd(row) {
+       this.AddDialogTableVisibleModel = true;
+    },
+    successAddUploadCover(res,file,fileList) {
+        this.AddForm.fields.forEach(item => {
+            if(item.f_type == 1) {
+                item.f_value = `${api.address}${res.content}`
+            }
+        })
+    },
+    removeAddUploadCover(file,fileList) {
+        this.AddForm.fields.forEach(item => {
+            if(item.f_type == 1) {
+                item = []
+                item.f_value = ''
+            }
+        })
+    },
+    submitAddForm(formName) {
+        this.$refs[formName].validate((valid) => {
+            if(valid) {
+                // 开启加载器
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在保存中...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+                var formdata = new FormData();
+                formdata.append('access_token',getToken());
+                formdata.append('a_title',this.AddForm.article.a_title);
+                formdata.append('a_category',this.AddCategoryId);
+                for(var i = 0 ; i < this.AddForm.fields.length ; i++) {
+                    if(this.AddForm.fields[i].f_value != null) {
+                        formdata.append(this.AddForm.fields[i].f_key,this.AddForm.fields[i].f_value);
+                    }
+                }
+                this.$http.post(`${api.dev}/p/main/strategy/save`,formdata,{emulateJSON:true}).then(res => {
+                    if(res.body.code == 200) {
+                        loading.close();
+                        this.AddDialogTableVisible = false;
+                        this.AddDialogTableVisibleModel = false;
+                        this.AddOptions = [];
+                        // this.$refs[formName].clearValidate(); // 清除表单验证规则
+                        this.$refs[formName].resetFields(); // 清除表单验证规则 清空表单数据
+                        // this.$refs[AddUpload].clearFiles(); // 清除图片位置
+                        this.$refs.AddUpload[0].clearFiles();
+                        console.log(this.$refs.AddUpload[0]);
+                        this.$message({
+                            message: res.body.msg,
+                            type: 'success'
+                        });
+                        // this.loading = true;
+                        this.getTableData();
+                    }else if(res.body.code == 500) {
+                        this.$message({
+                            message : res.body.msg,
+                            type : 'error'
+                        })
+                        removeToken();
+                        setTimeout(function () {
+                        window.location.href = '';
+                        },2000)
+                    }
+                })
+            }else {
+                console.log('submit error');
+                return false;
+            }
+        })
+    },
+    cancleAddForm(formName) {
+      this.AddDialogTableVisible = false;
+      this.$refs[formName].clearValidate(); // 清除表单验证规则
+    },
+  },
+  created() {
+    this.getTopic();
+    this.getSubPermission();
+  },
+  mounted() {
+  }
+}
+</script>
+
+<style lang="stylus">
+.AddVillageBtn 
+  margin-bottom 10px
+</style>

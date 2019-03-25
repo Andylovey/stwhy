@@ -1,0 +1,273 @@
+<template>
+	<div>
+		<div class="margin-bottom-10">
+			<el-input v-model="searchName" placeholder="请输入用户名称进行搜索" style="width:200px; margin-right:10px;" @keyup.enter.native="getInfo()"></el-input>
+			<el-select v-model="searchID1" slot="prepend" placeholder="请选择" style="width:140px" clearable>
+				<el-option label="未知" value="0"></el-option>
+				<el-option label="男" value="1"></el-option>
+				<el-option label="女" value="2"></el-option>
+			</el-select>
+			<el-button slot="append" icon="el-icon-search" type="primary" @keyup.enter="getInfo()" @click="getInfo()" style="margin-left:10px;">搜索</el-button>
+		</div>
+		<el-table
+			v-if="permissionShow"
+			v-loading="loading"
+			element-loading-text="拼命加载中"
+			element-loading-spinner="el-icon-loading"
+			element-loading-background="rgba(0, 0, 0, 0.8)"
+			:data="tableData"
+			border
+			style="width: 100%"
+			height="calc(100% - 100px)">
+			<el-table-column prop="user_phone" label="手机号码" sortable align="center" min-width="180"></el-table-column>
+			<el-table-column prop="user_nickname" label="昵称" sortable align="center" min-width="180"></el-table-column>
+			<el-table-column prop="user_image" label="头像" sortable align="center" min-width="140">
+				<template slot-scope="scope">
+					<img
+						:src="scope.row.user_image"
+						height="34px"
+						class="showImg"
+						@click="showImg(scope.row)">
+				</template>
+			</el-table-column>
+			<el-table-column prop="user_sexText" label="性别" sortable align="center" min-width="140"></el-table-column>
+			<el-table-column prop="user_birthday" label="生日" sortable align="center" min-width="200"></el-table-column>
+			<el-table-column prop="user_platform" label="注册平台" sortable align="center" min-width="180"></el-table-column>
+			<el-table-column prop="user_source" label="注册来源" sortable align="center" min-width="180"></el-table-column>
+			<el-table-column
+				fixed="right"
+				label="操作"
+				align="center"
+				min-width="180"
+				v-if="permissionDetail">
+				<template slot-scope="scope">
+					<router-link :to="'/visitor/visitorMGT/visitorMGTdetail/'+scope.row.user_id">
+						<el-button v-if="permissionDetail" type="text" size="small" >查看</el-button>
+					</router-link>
+				</template>
+			</el-table-column>
+		</el-table>
+
+		<!-- 分页 -->
+		<div id="pagination">
+			<el-pagination
+				background
+				layout="prev, pager, next"
+				:total="total"
+				:page-size="limit"
+				@current-change="handleCurrentChange">
+			</el-pagination>
+		</div>
+
+		<!-- 放大首图 -->
+		<el-dialog 
+			:visible.sync="ImgDialog"
+			:title="currentImg.user_nickname" 
+			width="500px"
+			:close-on-click-modal="false">
+			<img :src="currentImg.user_image" width="100%">
+		</el-dialog>
+	</div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 时间过滤器
+import {formatDate} from '@/filter/date.js'
+
+export default {
+	name: 'visitorMGT',
+	data() {
+		return {
+			/* 
+			 * tableData: 表格数据
+			 * loading: 加载状态（默认为true）
+			 * total: 总条数（table数据总长度）
+			 * start: 表格分页（默认第一页）
+			 * limit: 每页显示条数
+			 * searchName: 搜索（在线用户名称）
+			 * searchID1: 性别（0：未知，1：男：2：女，为null或空查全部）
+			 */
+			tableData : [],
+			loading : true,
+			total: 0,
+			start : 0,
+			limit : 10,
+			searchName: '',
+			searchID1: '',
+			/* 放大图片 */
+			ImgDialog: false,
+			currentImg: '',
+
+			/* 查看详情部分 */
+			DetailDialogTableVisible : false,
+			DetailForm : {
+				cl_name : '',
+				cl_time : '',
+				cl_title_required : '',
+				cl_date_required : '',
+				cl_author_required : '',
+				cl_img_required : '',
+				cl_article_required : ''
+			},
+
+			permissionShow: false, // 默认为false,根据权限是否显示
+			permissionDetail: false, // 默认为false,根据权限是否新建
+		}
+	},
+	methods : {
+		getLimit(){
+			this.$http.post(
+				`${api.dev}/p/main/preference/show`,
+				{
+					access_token: getToken(),
+				},
+				{emulateJSON : true}
+			).then(res => {
+				if(res.body.code == 200) {
+					this.limit = (res.body.content) ? res.body.content.p_pagesize : 10;
+					this.getInfo();
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					this.getInfo();
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		/* 获取权限 */
+		getSubPermission() {
+			this.$http.get(
+				`${api.dev}/p/permission/getSub`,
+				{
+					params:{
+						access_token:getToken(),
+						p_id: this.$route.params.id
+					}
+				}
+			).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.forEach(item => {
+						if(item.p_name.indexOf('显示') > -1) {
+							this.permissionShow = true;
+						}else if(item.p_name.indexOf('查看') > -1) {
+							this.permissionDetail = true;
+						}
+					})
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		/* 表格数据加载 */
+		getInfo(){
+			this.$http.post(
+				`${api.dev}/p/main/user/show`,
+				{
+					access_token: getToken(),
+					start: this.start,
+					limit: this.limit,
+					name1: this.searchName,
+					id1: this.searchID1
+				},
+				{emulateJSON : true}
+			).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.records.forEach(i => {
+						i.user_birthday = formatDate(new Date(i.user_birthday) , 'yyyy-MM-dd hh:mm:ss');
+						switch(i.user_sex){
+							case 0:
+								i.user_sexText = '未知';
+								break;
+							case 1:
+								i.user_sexText = '男';
+								break;
+							case 2:
+								i.user_sexText = '女';
+								break;
+						}
+						if(i.user_image){
+							if(i.user_image.indexOf('http://') != -1 || i.user_image.indexOf('https://') != -1){
+								  //
+							}else{
+								i.user_image = `${api.dev}${i.user_image}`;
+							}
+						}
+					});
+					this.tableData = res.body.content.records;
+					this.total = res.body.content.total;
+					this.loading = false;
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		/* 分页 */
+		handleCurrentChange(val) {
+			this.loading = true;
+			this.start = this.limit * (val - 1);
+			this.getInfo();
+		},
+		/* 大图查看 */
+		showImg(row){
+			this.ImgDialog = true;
+			this.currentImg = row;
+		},
+	},
+	created() {
+		this.getSubPermission();
+		this.getLimit();
+	}
+}
+</script>
+
+
+<style lang="stylus" scoped>
+#pagination
+	margin-top 10px
+.margin-bottom-10
+	margin-bottom 10px
+</style>
+
+<style>
+.el-date-editor .el-range-input[placeholder='开始日期']{
+	text-align: left!important;
+}
+</style>

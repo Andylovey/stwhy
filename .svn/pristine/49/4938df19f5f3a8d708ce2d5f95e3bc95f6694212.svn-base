@@ -1,0 +1,362 @@
+<template>
+	<div class="target">
+		<div style="margin-bottom:10px;">
+			<router-link :to="'/vote/target/targetadd/add'" style="float:left">
+				<el-button v-if="permissionAdd" type="primary" class="AddVillageBtn"><i class="el-icon-edit"></i> 新增</el-button>
+			</router-link>
+			<el-upload
+				v-if="permissionLeadingIn"
+				style="float:left; margin-right:10px;"
+				class="upload-demo"
+				:action="UploadUrl"
+				:limit="1"
+				:before-upload="beforeUpload">
+				<el-button type="primary"><i class="el-icon-upload2"></i>批量导入</el-button>
+			</el-upload>
+			<el-button v-if="permissionLeadingIn" type="primary" @click="downTemplate"><i class="el-icon-download"></i> 下载模板</el-button>
+		</div>
+		<div class="search">
+			<dl>
+				<dt style="margin-left: 0;">参赛搜索</dt>
+				<dd><el-input v-model="searchName1" placeholder="可搜索参赛名称/编码" style="width:200px" @keyup.enter.native="handleSearch()"></el-input></dd>
+			</dl>
+			<dl>
+				<dt>关联投票搜索</dt>
+				<dd><el-input v-model="searchName2" placeholder="可搜索投票名称/编码" style="width:200px" @keyup.enter.native="handleSearch()"></el-input></dd>
+			</dl>
+			<dl>
+				<dt>投票状态</dt>
+				<dd>
+					<el-select v-model="searchID2" slot="prepend" placeholder="请选择" style="width:140px" clearable>
+						<el-option label="未开始" value="0"></el-option>
+						<el-option label="进行中" value="1"></el-option>
+						<el-option label="已结束" value="2"></el-option>
+					</el-select>
+				</dd>
+			</dl>
+			<el-button slot="append" icon="el-icon-search" type="primary" @click="handleSearch()" style="margin-left:10px; margin-bottom: 10px;">搜索</el-button>
+		</div>
+		<el-table
+			v-if="permissionShow"
+			v-loading="loading"
+			element-loading-text="拼命加载中"
+			element-loading-spinner="el-icon-loading"
+			element-loading-background="rgba(0, 0, 0, 0.8)"
+			stripe
+			border
+			:data="tableData"
+			style="width: 100%;"
+			height="calc(100% - 206px)">
+			<el-table-column prop="tl_id" label="序号" sortable align="center" min-width="90"></el-table-column>
+			<el-table-column prop="tl_number" label="参赛编号" sortable align="center" min-width="160"></el-table-column>
+			<el-table-column prop="tl_name" label="参赛内容名称" sortable align="center" min-width="180"></el-table-column>
+			<el-table-column prop="tl_img_url" label="首图" sortable align="center" min-width="160">
+				<template slot-scope="scope">
+					<img
+						:src="scope.row.tl_img_url"
+						height="34px"
+						class="showImg"
+						@click="showImg(scope.row)">
+				</template>
+			</el-table-column>
+			<el-table-column prop="vl_name" label="关联投票名称" sortable align="center" min-width="200">
+				<template slot-scope="scope">
+					<router-link :to="'/vote/ballot/ballotdetail/'+scope.row.tl_vl_id">
+						<el-button type="text" size="small">{{scope.row.vl_name}}</el-button>
+					</router-link>
+				</template>
+			</el-table-column>
+			<el-table-column prop="tl_poll" label="票数" sortable align="center" min-width="160"></el-table-column>
+			<el-table-column prop="vl_status" label="投票状态" sortable align="center" min-width="160"></el-table-column>
+			<el-table-column
+				fixed="right"
+				label="操作"
+				min-width="200"
+				align="center">
+				<template slot-scope="scope">
+					<router-link :to="'/vote/target/targetdetail/'+scope.row.tl_id">
+						<el-button v-if="permissionDetail" type="text" size="small">查看</el-button>
+					</router-link>
+					<router-link :to="'/vote/target/targetedit/'+scope.row.tl_id">
+						<el-button v-if="permissionEdit" type="text" size="small" style="margin-left:10px">编辑</el-button>
+					</router-link>
+					<el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small" style="margin-left:10px">删除</el-button>
+				</template>
+			</el-table-column>
+		</el-table>
+
+		<!-- 分页 -->
+		<div id="pagination">
+			<el-pagination
+				v-if="total!=0"
+				background
+				layout="prev, pager, next,total ,jumper"
+				:total="total"
+				@current-change="handleCurrentChange">
+			</el-pagination>
+		</div>
+
+		<!-- 放大首图 -->
+		<el-dialog 
+			:visible.sync="ImgDialog"
+			:title="currentImg.tl_name" 
+			width="40%"
+			:close-on-click-modal="false">
+			<img :src="currentImg.tl_img_url" width="100%">
+		</el-dialog>
+	</div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+
+export default {
+	name: 'target',
+	data() {
+			return {
+				// 权限按钮控制
+				permissionShow : false,
+				permissionAdd : false,
+				permissionEdit : false,
+				permissionDetail : false,
+				permissionDelete : false,
+				permissionLeadingIn : false,
+
+				total : 0, // 总条数
+				start : 0, // 默认为0
+				limit : 10, // 默认为10
+				searchID1 : '', // null或空查询全部
+				searchID2 : '', // null或空查询全部
+				searchName1 : '',
+				searchName2 : '',
+				isFirst: true,
+
+				ImgDialog : false,
+				currentImg: '',
+				UploadUrl : `${api.dev}/p/vote/target/input?access_token=${getToken()}`, // 上传路径
+				loading : true,
+				tableData : [],
+				files : '',
+				fileName : '',
+			}
+	},
+	methods: {
+		downTemplate(){
+			window.location.href = `${api.dev}/p/vote/target/downTemplate?access_token=${getToken()}`;
+		},
+		beforeUpload(file){
+			console.log(file,'文件');
+			this.files = file;
+			const extension = file.name.split('.')[1] === 'xls';
+			const extension2 = file.name.split('.')[1] === 'xlsx';
+			if (!extension && !extension2) {
+				this.$message({
+					message: '只能导入xls、xlsx格式文件!',
+					type: 'warning'
+				});
+				return false;
+			}
+			this.fileName = file.name;
+			this.handleInput();
+			return false // 返回false不会自动上传
+		},
+		getSubPermission() {
+			this.$http.get(`${api.dev}/p/permission/getSub`,{params: {access_token: getToken(), p_id : this.$route.params.id}}).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.forEach(item => {
+						if(item.p_name.indexOf('显示') > -1) {
+							this.permissionShow = true
+						}else if(item.p_name.indexOf('新建') > -1) {
+							this.permissionAdd = true;
+						}else if(item.p_name.indexOf('修改') > -1) {
+							this.permissionEdit = true
+						}else if(item.p_name.indexOf('查看') > -1) {
+							this.permissionDetail = true
+						}else if(item.p_name.indexOf('删除') > -1) {
+							this.permissionDelete = true;
+						}else if(item.p_name.indexOf('批量导入') > -1){
+							this.permissionLeadingIn = true;
+						}
+					})
+				}else if(res.body.code === 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000) 
+				}
+			})
+		},
+		getInfo() {
+			var formdata = new FormData();
+			formdata.append('access_token',getToken());
+			formdata.append('start',this.start);
+			formdata.append('limit',this.limit);
+			this.searchID1 = (this.$route.query.vlid && this.isFirst) ? this.$route.query.vlid : '';
+			this.isFirst = false;
+			formdata.append('id1',this.searchID1);
+			formdata.append('id2',this.searchID2);
+			formdata.append('name1',this.searchName1);
+			formdata.append('name2',this.searchName2);
+			this.$http.post(`${api.dev}/p/vote/target/show`,formdata,{emulateJSON: true}).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.records.forEach( i => {
+						i.tl_img_url = `${api.address}${i.tl_img_url}`
+					})
+					this.tableData = res.body.content.records;
+					this.total = res.body.content.total;
+					this.loading = false;
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		handleInput(){
+			let fileFormData = new FormData();
+			fileFormData.append('excelFile', this.files, this.fileName);
+			fileFormData.append('access_token', getToken());
+			let config = {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+			this.$http.post(
+				`${api.dev}/p/vote/target/input`,
+				fileFormData,
+				{emulateJSON: true},
+				config
+			).then(res => {
+				if(res.body.code == 200) {
+					this.$message({
+						message: res.body.msg,
+						type: 'success'
+					});
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		/* 大图查看 */
+		showImg(row){
+			this.ImgDialog = true;
+			this.currentImg = row;
+		},
+		handleSearch() {
+			this.loading = true;
+			this.getInfo();
+		},
+		// 分页
+		handleCurrentChange(val) {
+			this.loading = true;
+			this.start = 10 * (val - 1);
+			this.getInfo();
+		},
+		// 删除操作
+		handleDelete(row) {
+			// console.log(row.tl_id);
+			this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+				// cancelButtonClass: 'btn-custom-cancel',
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.loading = true;
+				this.$http.post(`${api.dev}/p/vote/target/delete`,{access_token: getToken(), tl_id : row.tl_id},{emulateJSON:true}).then(res => {
+					if(res.body.code == 200) {
+						this.$message({
+							message: '删除成功',
+							type: 'success'
+						});
+						this.getInfo();
+					}else if(res.body.code == 500) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+					}else if(res.body.code == 510) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+						removeToken();
+						setTimeout(function () {
+							this.$router.push({path: '/login'})
+						},2000) 
+					}
+				})
+			})
+		}
+	},
+	created() {
+		this.getSubPermission()
+		this.getInfo()
+	}
+}
+</script>
+
+<style lang="stylus" scoped>
+#pagination
+	margin-top 10px
+.showImg
+	vertical-align middle
+.showImg:hover
+	cursor zoom-in
+.search{
+	text-align right
+	dl{
+		display inline-block
+		margin-top 0
+		margin-bottom 10px
+		dd, dt{
+			display inline-block
+		}
+		dt{
+			margin-left 24px
+			margin-right 12px
+			color #999
+			font-size 14px
+		}
+		dd{
+			margin-left 0
+		}
+	}
+}
+
+</style>
+<style lang="stylus">
+.target{
+	.el-upload-list{
+		display none
+	}
+}
+</style>

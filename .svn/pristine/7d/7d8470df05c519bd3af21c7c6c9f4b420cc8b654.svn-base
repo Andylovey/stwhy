@@ -1,0 +1,161 @@
+<template>
+	<div>
+		<template v-if="permissionShow">
+			<!-- 表单 -->
+			<el-form ref="Form" :model="Form" label-width="140px" :rules="Rules">
+				<el-form-item label="用户ID" prop="p_user">
+					<el-input v-model="Form.p_user" disabled></el-input>
+				</el-form-item>
+				<el-form-item label="每页总数" prop="p_pagesize">
+					<el-input v-model="Form.p_pagesize" :disabled="!permissionSave"></el-input>
+				</el-form-item>
+				<el-form-item class="text-align-right">
+					<template v-if="permissionSave">
+						<el-button type="primary" @click="submitForm">保存</el-button>
+						<el-button @click="cancleForm">取消</el-button>
+					</template>
+					<template v-else>
+						<el-button type="primary" disbaled>保存</el-button>
+						<el-button disbaled>取消</el-button>
+					</template>
+				</el-form-item>
+			</el-form>
+		</template>
+		<template v-else>
+			您的权限不足！
+		</template>
+	</div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+
+export default {
+	name: 'preference',
+	data() {
+		return {
+			/* 
+			 * loading: 加载状态（默认为true）
+			 */
+			loading : true,
+
+			Form : {},
+			Rules : {
+				p_pagesize : [{required: true, message : '请输入每页总数', trigger: 'blur'}],
+			},
+
+			permissionShow: false, // 默认为false,根据权限是否显示
+			permissionSave: false, // 默认为false,根据权限是否修改
+		}
+	},
+	methods : {
+		/* 获取权限 */
+		getSubPermission() {
+			this.$http.get(
+				`${api.dev}/p/permission/getSub`,
+				{
+					params:{
+						access_token:getToken(),
+						p_id: this.$route.params.id
+					}
+				}
+			).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.forEach(item => {
+						if(item.p_name.indexOf('查询') > -1) {
+							this.permissionShow = true;
+						}else if(item.p_name.indexOf('保存') > -1) {
+							this.permissionSave = true;
+						}
+					})
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						//window.location.href = '/stwhy';
+					},2000)
+				}
+			})
+		},
+		/* 表格数据加载 */
+		getInfo(){
+			this.$http.post(
+				`${api.dev}/p/main/preference/show`,
+				{
+					access_token: getToken(),
+				},
+				{emulateJSON : true}
+			).then(res => {
+				if(res.body.code == 200) {
+					this.Form = res.body.content;
+					this.loading = false;
+				}else if (res.body.code == 500) {
+					this.$message({
+						message : res.body.msg,
+						type : 'error'
+					})
+					removeToken();
+					setTimeout(function () {
+						window.location.href = '/stwhy';
+					},2000)
+				}
+			})
+		},
+		/* 保存 */
+		submitForm() {
+			// 开启加载器
+			const loading = this.$loading({
+				lock: true,
+				text: '正在保存中...',
+				spinner: 'el-icon-loading',
+				background: 'rgba(0, 0, 0, 0.7)'
+			});
+			var formdata = new FormData();
+			formdata.append('access_token',getToken());
+			formdata.append('p_user',parseInt(this.Form.p_user));
+			formdata.append('p_pagesize',parseInt(this.Form.p_pagesize));
+			this.$http.post(
+				`${api.dev}/p/main/preference/save`,
+				formdata,
+				{emulateJSON:true}
+			).then(res => {
+				loading.close();
+				if(res.body.code == 200) {
+					this.$message({
+						message: res.body.msg,
+						type: 'success'
+					});
+					cancleForm();
+				}else if (res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}
+				this.loading = true;
+				this.getInfo();
+			})
+		},
+		/* 取消 */
+		cancleForm(){
+			this.getInfo();
+			this.$refs.Form.clearValidate(); // 清除表单验证规则
+		}
+	},
+	created() {
+		this.getSubPermission();
+		this.getInfo();
+	}
+}
+</script>
+
+
+<style lang="stylus" scoped>
+
+</style>

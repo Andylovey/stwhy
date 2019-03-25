@@ -1,0 +1,891 @@
+<template>
+  <div>
+    <div style="position:relative;">
+    <div style="margin-bottom:10px;position:absolute;z-index:99;top:10px;left:20px;">
+      <span style="color:#1f2f3d;font-weight:400;font-size:18px;margin-right:10px">网站访问量</span>
+      <el-date-picker
+        v-model="dateSearch"
+        type="daterange"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        value-format="yyyy-MM-dd"
+        >
+      </el-date-picker>
+      <el-button type="primary" style="margin-left:10px;" @click="handleSearch" icon="el-icon-refresh">刷新</el-button>
+    </div>
+    <div style="display:flex;">
+      <div :class="className" :id="id" :style="{height:height,flex:4}"/>
+      <div @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave" style="flex:1;background-color:rgb(85, 122, 132);position:relative;">
+        <h3 style="text-align:center;color:#fff;">今日注册量</h3>
+        <h1 style="margin:70px 0;color:#fff;text-align:center;font-size:48px;">{{showDailyRegist}}</h1>
+        <el-button v-if="isShowReload" type="text" @click="handleReload" style="border-top:1px solid #ccc;width:100%;position:absolute;bottom:0;height:50px;color:#fff;">刷新</el-button>
+      </div>
+    </div>
+
+    <div style="height:420px;border:1px solid #dcdfe6;box-shadow:0 2px 4px 0 rgba(0, 0, 0, 0.12), 0 0 6px 0 rgba(0, 0, 0, 0.04);padding-top:10px;position:relative;margin-top:20px;">
+        <span style="font-size:18px;font-weight:400;color:#909399;margin-left:15px;">消息通知</span>
+        <el-button type="text" size="medium" style="margin-left:15px;cursor:pointer;color:red;" @click="handleAllNotice" id="AllNotice">全部</el-button>
+        <el-button type="text" size="medium" style="margin-left:15px;cursor:pointer;" @click="handleReadedNotice" id="ReadedNotice">已读</el-button>
+        <el-button type="text" size="medium" style="margin-left:15px;cursor:pointer;" @click="handleNotReadNotice" id="NotReadNotice">未读</el-button>
+        
+        <p @click="handleSetRead(item.nl_id)" v-for="item in tableData" :key="item.nl_id" style="padding-left:15px;color:#606266;font-size:14px;cursor:pointer;border-bottom:1px solid #dcdfe6;margin:0;height:30px;">
+            <span style="width:90%;display:inline-block;overflow:hidden;text-overflow: ellipsis;white-space: nowrap;line-height:30px;">【{{item.nl_title}}】 {{item.nl_content}} </span>
+            <span style="color:red;font-size:12px;position:absolute;line-height:30px;" v-if="item.nl_status=='未读'">NEW</span> 
+            <span style="float:right;margin-right:10px;line-height:30px;">{{item.nl_releasedate}}</span>
+        </p>
+        <!-- <el-table
+        v-loading="loading"
+        element-loading-text="拼命加载中"
+        element-loading-spinner="el-icon-loading"
+        element-loading-background="rgba(0, 0, 0, 0.8)"
+        border
+        stripe
+        :data="tableData"
+        style="width: 100%;margin-top:10px"
+        height="75%"
+        @row-click="handleIsRead"
+        >
+            <el-table-column
+            prop="nl_title"
+            label="标题"
+            sortable
+            width="200"
+            align="center"
+            show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+            prop="nl_releasedate"
+            label="发布日期"
+            sortable
+            width="150"
+            align="center">
+        </el-table-column>
+        <el-table-column
+            prop="nl_content"
+            label="通知内容"
+            sortable
+            min-width="160"
+            align="center"
+            show-overflow-tooltip>
+        </el-table-column>
+        <el-table-column
+            label="操作"
+            align="center"
+            width="150">
+            <template slot-scope="scope">
+                <el-button type="primary" size="small" @click="handleSetStatus(scope.row)">设置已读</el-button>
+            </template>
+        </el-table-column>
+        </el-table> -->
+        <div style="margin-top:10px;position:absolute;bottom:10px;">
+        <el-pagination
+            background
+            layout="prev, pager, next,total ,jumper"
+            :total="total"
+            :page-size="limit"
+            @current-change="handleCurrentChange">
+        </el-pagination>
+        </div>
+    </div>
+
+    <el-dialog 
+      :visible.sync="NoticeDialogTableVisible"
+      title="消息通知" 
+      :close-on-click-modal="false"
+      width="750px">
+      <el-form :model="NoticeForm" label-width="80px" style="width:100%;">
+          <el-form-item label="标题">
+              <el-input v-model="NoticeForm.title" readonly></el-input>
+          </el-form-item>
+          <el-form-item label="内容">
+              <el-input v-model="NoticeForm.content" :rows="6" type="textarea" readonly></el-input>
+          </el-form-item>
+      </el-form>
+    </el-dialog>
+
+    <div style="display:flex;margin-top:20px">
+            <div style="width:50%;height:380px;border:1px solid #dcdfe6;box-shadow:0 2px 4px 0 rgba(0, 0, 0, 0.12), 0 0 6px 0 rgba(0, 0, 0, 0.04);padding-top:10px;">
+                <span style="font-size:18px;font-weight:400;color:#909399;margin-left:15px;">待审核的文章</span>
+                <el-table
+                    v-loading="loadingshowNeedAudit"
+                    element-loading-text="拼命加载中"
+                    element-loading-spinner="el-icon-loading"
+                    element-loading-background="rgba(0, 0, 0, 0.8)"
+                    border
+                    stripe
+                    style="margin-top:10px"
+                    :data="tableDatashowNeedAudit"
+                    height="80%">
+                        <el-table-column
+                        prop="a_title"
+                        label="标题"
+                        sortable
+                        align="left"
+                        show-overflow-tooltip>
+                        </el-table-column>
+                        <el-table-column
+                        prop="a_create_time"
+                        label="创建日期"
+                        sortable
+                        align="center"
+                        show-overflow-tooltip>
+                        </el-table-column>
+                </el-table>
+                <div style="margin-top:10px;">
+                    <el-pagination
+                        background
+                        layout="prev, pager, next,total ,jumper"
+                        :total="showNeedAuditTotal"
+                        @current-change="handleCurrentChangeNeedAduit">
+                    </el-pagination>
+                </div>
+            </div>
+
+            <div style="width:50%;height:380px;border:1px solid #dcdfe6;box-shadow:0 2px 4px 0 rgba(0, 0, 0, 0.12), 0 0 6px 0 rgba(0, 0, 0, 0.04);padding-top:10px;">
+                <span style="font-size:18px;font-weight:400;color:#909399;margin-left:15px;">待发布的文章</span>
+                <el-table
+                    v-loading="loadingshowNeedPublish"
+                    element-loading-text="拼命加载中"
+                    element-loading-spinner="el-icon-loading"
+                    element-loading-background="rgba(0, 0, 0, 0.8)"
+                    border
+                    stripe
+                    style="margin-top:10px"
+                    :data="tableDatashowNeedPublish"
+                    height="80%">
+                        <el-table-column
+                        prop="a_title"
+                        label="标题"
+                        sortable
+                        align="left"
+                        show-overflow-tooltip>
+                        </el-table-column>
+                        <el-table-column
+                        prop="a_create_time"
+                        label="创建日期"
+                        sortable
+                        align="center"
+                        show-overflow-tooltip>
+                        </el-table-column>
+                </el-table>
+                <div style="margin-top:10px;">
+                    <el-pagination
+                        background
+                        layout="prev, pager, next,total ,jumper"
+                        :total="showNeedPublishTotal"
+                        @current-change="handleCurrentChangeNeedPublish">
+                    </el-pagination>
+                </div>
+            </div>
+        </div>
+
+    <div style="display:flex;margin-top:20px">
+            <!-- <div style="width:50%;height:380px;border:1px solid #dcdfe6;box-shadow:0 2px 4px 0 rgba(0, 0, 0, 0.12), 0 0 6px 0 rgba(0, 0, 0, 0.04);padding-top:10px;">
+                <span style="font-size:18px;font-weight:400;color:#909399;margin-left:15px;">网络访问量</span>
+                <el-table
+                v-loading="loadingShowVisits"
+                element-loading-text="拼命加载中"
+                element-loading-spinner="el-icon-loading"
+                element-loading-background="rgba(0, 0, 0, 0.8)"
+                border
+                stripe
+                style="margin-top:10px"
+                :data="tableDataShowVisits"
+                height="80%">
+                    <el-table-column
+                    prop="t_name"
+                    label="专题"
+                    sortable
+                    align="center"
+                    show-overflow-tooltip>
+                    </el-table-column>
+                    <el-table-column
+                    prop="num"
+                    label="访问量"
+                    sortable
+                    align="center"
+                    show-overflow-tooltip>
+                    </el-table-column>
+                </el-table>
+                <h4 style="font-weight:400;color:#1f2f3d;margin:15px;">总访问量：{{showVisitsTotal}}</h4>
+            </div> -->
+            <!-- <div style="width:50%;padding-top:10px;display:flex;">
+                <el-form label-width="100px">
+                    <el-form-item label="今日注册量">
+                        <el-input v-model="showDailyRegist" readonly></el-input>
+                    </el-form-item>
+                </el-form>
+            </div> -->
+        </div>
+  </div>
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 时间过滤器
+import {formatDate} from '@/filter/date.js';
+
+import echarts from 'echarts'
+import resize from './mixins/resize'
+
+export default {
+  mixins: [resize],
+  props: {
+    className: {
+      type: String,
+      default: 'chart'
+    },
+    id: {
+      type: String,
+      default: 'chart'
+    },
+    width: {
+      type: String,
+      default: '100%'
+    },
+    height: {
+      type: String,
+      default: '290px'
+    }
+  },
+  name: 'dashboard',
+  data() {
+      return {
+          loading : true,
+          tableData : [],
+          start : 0,
+          limit : 10,
+          id1 : 0,
+          total : 0,
+
+          loadingShowVisits : true,
+          tableDataShowVisits : [],
+          showVisitsTotal : 0,
+
+          showDailyRegist : '',
+
+
+          loadingshowNeedAudit : true,
+          tableDatashowNeedAudit : [],
+          showNeedAuditStart : 0,
+          showNeedAuditLimit : 10,
+          showNeedAuditTotal : 0,
+
+
+          loadingshowNeedPublish : true,
+          tableDatashowNeedPublish : [],
+          showNeedPublishStart : 0,
+          showNeedPublishLimit : 10,
+          showNeedPublishTotal : 0,
+
+
+          NoticeDialogTableVisible : false,
+          NoticeForm : {
+              title : '',
+              content : ''
+          },
+
+          dateSearch : '',
+          chart: null,
+          topicArr : [],
+          visitsDataArr : [],
+
+          isShowReload : false,
+      }
+  },
+  methods : {
+      getNotice() {
+          this.$http.post(`${api.dev}/p/main/index/showNotice`,{access_token:getToken(),start:this.start,limit:this.limit,id1:this.id1},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                  res.body.content.records.forEach((item) => {
+                      item.nl_createtime = formatDate(new Date(item.nl_createtime),'yyyy-MM-dd')
+                      item.nl_releasedate = formatDate(new Date(item.nl_releasedate),'yyyy-MM-dd')
+                  })
+                  this.tableData = res.body.content.records;
+                  this.loading = false;
+                  this.total = res.body.content.total;
+              }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                         window.location.href = '';
+                    },2000)
+              }
+          })
+      },
+      getShowVisits() {
+          let start1 = '';
+          let end1 = '';
+          if(this.dateSearch) {
+            start1 = this.dateSearch[0]
+            end1 = this.dateSearch[1]
+          }else {
+            start1 = '';
+            end1 = '';
+          }
+          this.$http.post(`${api.dev}/p/main/index/showVisits`,{access_token:getToken(),date_start1:start1,date_end1:end1},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                    this.tableDataShowVisits = res.body.content.records;
+                    this.loadingShowVisits = false;
+                    this.showVisitsTotal = res.body.content.total;
+
+                    res.body.content.records.forEach(item => {
+                        this.topicArr.push(item.t_name);
+                        this.visitsDataArr.push(item.num);
+                    })
+
+                    this.initChart()
+              }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+              }
+          })
+      },
+      getShowDailyRegist() {
+          this.$http.post(`${api.dev}/p/main/index/showDailyRegist`,{access_token:getToken()},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                    this.showDailyRegist = res.body.content;
+              }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+              }
+          })
+      },
+      getShowNeedAudit() {
+          this.$http.post(`${api.dev}/p/main/index/showNeedAudit`,{access_token:getToken(),start:this.showNeedAuditStart,limit:this.showNeedAuditLimit},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                    res.body.content.records.forEach((item) => {
+                        item.a_create_time = formatDate(new Date(item.a_create_time),'yyyy-MM-dd');
+                    })
+                    this.tableDatashowNeedAudit = res.body.content.records;
+                    this.loadingshowNeedAudit = false;
+                    this.showNeedAuditTotal = res.body.content.total;
+              }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+              }
+          })
+      },
+      getShowNeedPublish() {
+          this.$http.post(`${api.dev}/p/main/index/showNeedPublish`,{access_token:getToken(),start:this.showNeedPublishStart,limit:this.showNeedPublishLimit},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                     res.body.content.records.forEach((item) => {
+                         item.a_create_time = formatDate(new Date(item.a_create_time),'yyyy-MM-dd');
+                     })
+                    this.tableDatashowNeedPublish = res.body.content.records;
+                    this.loadingshowNeedPublish = false;
+                    this.showNeedPublishTotal = res.body.content.total;
+              }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+              }
+          })
+      },
+      handleAllNotice() {
+          document.getElementById('AllNotice').style = "color:red;margin-left:15px;"
+          document.getElementById('ReadedNotice').style = "color:#41B883;margin-left:15px;"
+          document.getElementById('NotReadNotice').style = "color:#41B883;margin-left:15px;"
+          this.start = 0;
+          this.id1 = 0;
+          this.getNotice();
+      },
+      handleReadedNotice() {
+          document.getElementById('AllNotice').style = "color:#41B883;margin-left:15px;"
+          document.getElementById('ReadedNotice').style = "color:red;margin-left:15px;"
+          document.getElementById('NotReadNotice').style = "color:#41B883;margin-left:15px;"
+          this.start = 0;
+          this.id1 = 2;
+          this.getNotice();
+      },
+      handleNotReadNotice() {
+          document.getElementById('AllNotice').style = "color:#41B883;margin-left:15px;"
+          document.getElementById('ReadedNotice').style = "color:#41B883;margin-left:15px;"
+          document.getElementById('NotReadNotice').style = "color:red;margin-left:15px;"
+          this.start = 0;
+          this.id1 = 1;
+          this.getNotice();
+      },
+      handleCurrentChange(val) {
+        this.loading = true;
+        this.start = this.limit * (val - 1);
+        this.getNotice();
+      },
+      handleCurrentChangeNeedAduit(val) {
+          this.loadingshowNeedAudit = true;
+          this.showNeedAuditStart = this.showNeedAuditLimit * (val - 1);
+          this.getShowNeedAudit();
+      },
+      handleCurrentChangeNeedPublish(val) {
+          this.loadingshowNeedPublish = true;
+          this.showNeedPublishStart = this.showNeedPublishLimit * (val - 1);
+          this.getShowNeedPublish();
+      },
+      handleSetStatus(row) {
+          this.$http.post(`${api.dev}/p/main/index/setState`,{access_token:getToken(),nl_id:row.nl_id},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                    this.$message({
+                        message : res.body.msg,
+                        type : 'success'
+                    })
+                    this.getNotice()
+              }else if(res.body.code == 500) {
+                    this.$message({
+                        message : res.body.msg,
+                        type : 'error'
+                    })
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+              }
+          })
+      },
+      handleIsRead(row,column,cell,event) {
+          this.$http.post(`${api.dev}/p/main/index/setState`,{access_token:getToken(),nl_id:row.nl_id},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                    this.$message({
+                        message : res.body.msg,
+                        type : 'success'
+                    })
+                    this.getNotice()
+              }else if(res.body.code == 500) {
+                    this.$message({
+                        message : res.body.msg,
+                        type : 'error'
+                    })
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+              }
+          })
+      },
+      handleSetRead(id) {
+          this.$http.post(`${api.dev}/p/main/index/setState`,{access_token:getToken(),nl_id:id},{emulateJSON:true}).then(res => {
+              if(res.body.code == 200) {
+                    // this.$message({
+                    //     message : res.body.msg,
+                    //     type : 'success'
+                    // })
+                    this.getNotice()
+              }else if(res.body.code == 500) {
+                    // this.$message({
+                    //     message : res.body.msg,
+                    //     type : 'error'
+                    // })
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                       window.location.href = '';
+                    },2000)
+              }
+          })
+
+        this.NoticeDialogTableVisible = true;
+        
+        this.$http.post(`${api.dev}/p/main/notice/select`,{access_token:getToken(),nl_id:id},{emulateJSON:true}).then(res => {
+            if(res.body.code == 200) {
+                this.NoticeForm.title = res.body.content.nl_title;
+                this.NoticeForm.content = res.body.content.nl_content;
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+            }else if(res.body.code == 510) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                   window.location.href = '';
+                },2000)
+            }
+        })
+
+      },
+
+    handleSearch() {
+      this.topicArr = [];
+      this.visitsDataArr = [];
+      this.getShowVisits()
+    },
+      
+    initChart() {
+      this.chart = echarts.init(document.getElementById(this.id))
+      this.chart.setOption({
+        backgroundColor: '#ebf0f6',
+        title: {
+          // text: '网站访问量',
+          x: '20',
+          top: '40',
+          textStyle: {
+            color: '#606266',
+            fontSize: '20'
+          },
+          subtext : `总访问量：${this.showVisitsTotal}`,
+          subtextStyle: {
+            color: '#606266',
+            fontSize: '16'
+          }
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            textStyle: {
+              color: '#fff'
+            }
+          }
+        },
+        grid: {
+          left: '5%',
+          right: '5%',
+          borderWidth: 0,
+          top: 100,
+          bottom: 50,
+          textStyle: {
+            color: '#fff'
+          }
+        },
+        legend: {
+          x: '5%',
+          top: '10%',
+          textStyle: {
+            color: '#606266'
+          },
+          data: []
+        },
+        calculable: true,
+        xAxis: [{
+          type: 'category',
+          axisLine: {
+            lineStyle: {
+              color: '#606266'
+            }
+          },
+          splitLine: {
+            show: false
+          },
+          axisTick: {
+            show: false
+          },
+          splitArea: {
+            show: false
+          },
+          axisLabel: {
+            interval: 0
+
+          },
+          data: this.topicArr
+        }],
+        yAxis: [{
+          type: 'value',
+          splitLine: {
+            show: false
+          },  
+          axisLine: {
+            lineStyle: {
+              color: '#606266'
+            }
+          },
+          axisTick: {
+            show: false
+          },
+          axisLabel: {
+            interval: 0
+          },
+          splitArea: {
+            show: false
+          }
+        }],
+        series: [{
+          name: '访问量',
+          type: 'bar',
+          stack: 'total',
+          barMaxWidth: 35,
+          barGap: '10%',
+          itemStyle: {
+            normal: {
+              //color: '#555151', //条形图颜色
+              color: new echarts.graphic.LinearGradient(
+                  0, 0, 0, 1, [{
+                      offset: 0,
+                      color: 'rgba(94, 188, 152, 0.75)'
+                  }, {
+                      offset: 1,
+                      color: 'rgba(80, 150, 165, 0.95)'
+                  }]
+              ),
+              label: {
+                show: true,
+                textStyle: {
+                  color: '#fff'
+                },
+                position: 'insideTop',
+                formatter(p) {
+                  return p.value > 0 ? p.value : ''
+                }
+              }
+            }
+          },
+          data: this.visitsDataArr
+        }
+        ]
+      })
+
+      const _this = this.chart;
+      document.getElementById('switchNavbar').onclick = function () {
+          setTimeout(() => {
+              _this.resize()
+          },200)
+      }
+    },
+    handleMouseEnter() {
+      this.isShowReload = true;
+    },
+    handleMouseLeave() {
+      this.isShowReload = false;
+    },
+    handleReload() {
+      this.getShowDailyRegist()
+    }
+    //   initChart() {
+    //   this.chart = echarts.init(document.getElementById(this.id))
+
+    //   this.chart.setOption({
+    //     backgroundColor: '#394056',
+    //     title: {
+    //       top: 20,
+    //       text: '网站访问量',
+    //       textStyle: {
+    //         fontWeight: 'normal',
+    //         fontSize: 16,
+    //         color: '#F1F1F3'
+    //       },
+    //       left: '1%',
+    //       subtext : `总访问量：${this.showVisitsTotal}`
+    //     },
+    //     tooltip: {
+    //       trigger: 'axis',
+    //       axisPointer: {
+    //         lineStyle: {
+    //           color: '#57617B'
+    //         }
+    //       }
+    //     },
+    //     legend: {
+    //       top: 20,
+    //       icon: 'rect',
+    //       itemWidth: 14,
+    //       itemHeight: 5,
+    //       itemGap: 13,
+    //     //   data: ['CMCC', 'CTCC', 'CUCC'],
+    //       data: [],
+    //       right: '4%',
+    //       textStyle: {
+    //         fontSize: 12,
+    //         color: '#F1F1F3'
+    //       }
+    //     },
+    //     grid: {
+    //       top: 100,
+    //       left: '2%',
+    //       right: '2%',
+    //       bottom: '2%',
+    //       containLabel: true
+    //     },
+    //     xAxis: [{
+    //       type: 'category',
+    //       axisLabel :{
+    //             interval: 0,
+    //                                         formatter:function(value)
+    //                                         {
+    //                                             return value.split("").join("\n");
+    //                                         }
+
+    //         },
+    //       boundaryGap: false,
+    //       axisLine: {
+    //         lineStyle: {
+    //           color: '#57617B'
+    //         }
+    //       },
+    //       // data: ['13:00', '13:05', '13:10', '13:15', '13:20', '13:25', '13:30', '13:35', '13:40', '13:45', '13:50', '13:55']
+    //       data : this.topicArr
+    //     }],
+    //     yAxis: [{
+    //       type: 'value',
+    //     //   name: '(%)',
+    //       name: '(次)',
+    //       axisTick: {
+    //         show: false
+    //       },
+    //       axisLine: {
+    //         lineStyle: {
+    //           color: '#57617B'
+    //         }
+    //       },
+    //       axisLabel: {
+    //         margin: 10,
+    //         textStyle: {
+    //           fontSize: 14
+    //         }
+    //       },
+    //       splitLine: {
+    //         lineStyle: {
+    //           color: '#57617B'
+    //         }
+    //       }
+    //     }],
+    //     series: [{
+    //       name: '访问量',
+    //       type: 'line',
+    //       smooth: true,
+    //       symbol: 'circle',
+    //       symbolSize: 5,
+    //       showSymbol: false,
+    //       lineStyle: {
+    //         normal: {
+    //           width: 1
+    //         }
+    //       },
+    //       areaStyle: {
+    //         normal: {
+    //           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+    //             offset: 0,
+    //             color: 'rgba(219, 50, 51, 0.3)'
+    //           }, {
+    //             offset: 0.8,
+    //             color: 'rgba(219, 50, 51, 0)'
+    //           }], false),
+    //           shadowColor: 'rgba(0, 0, 0, 0.1)',
+    //           shadowBlur: 10
+    //         }
+    //       },
+    //       itemStyle: {
+    //         normal: {
+    //           color: 'rgb(219,50,51)',
+    //           borderColor: 'rgba(219,50,51,0.2)',
+    //           borderWidth: 12
+    //         }
+    //       },
+    //     //   data: [220, 182, 125, 145, 122, 191, 134, 150, 120, 110, 165, 122]
+    //     data: this.visitsDataArr
+    //     }]
+    //   })
+
+    //   const _this = this.chart;
+    //   document.getElementById('switchNavbar').onclick = function () {
+    //       setTimeout(() => {
+    //           _this.resize()
+    //       },200)
+    //   }
+    //   // window.onresize = function () {
+    //   //   setTimeout(() => {
+    //   //         _this.resize()
+    //   //         console.log(_this);
+    //   //     },200)
+    //   // }
+    //   // window.onresize = this.chart.resize;
+    // }
+  },
+  created() {
+      this.getNotice()
+      this.getShowVisits()
+      this.getShowDailyRegist()
+      this.getShowNeedAudit()
+      this.getShowNeedPublish()
+  },
+  mounted() {
+    //   this.initChart()
+  },
+  beforeDestroy() {
+    if (!this.chart) {
+      return
+    }
+    this.chart.dispose()
+    this.chart = null
+  }
+}
+</script>
+
+<style lang="stylus" scoped>
+
+</style>
+
+<style>
+
+</style>
+

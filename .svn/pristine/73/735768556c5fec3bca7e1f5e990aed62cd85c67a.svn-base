@@ -1,0 +1,354 @@
+<template>
+  <div>
+    <!-- 表单 -->
+    <el-form ref="DetailForm" :model="DetailForm" style="margin-top:10px;margin-bottom:60px;">
+
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="公司名称" prop="vl_company" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_company" readonly></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="活动名称" prop="vl_name" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_name" readonly></el-input>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="活动咨询电话" prop="vl_consult_phone" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_consult_phone" readonly></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+              <el-form-item label="活动规则" prop="vl_rule" label-width="120px">
+                  <el-input v-model="DetailForm.vl_rule" readonly type="textarea"></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+              <el-form-item label="活动介绍" prop="vl_introduction" label-width="120px">
+                  <el-input v-model="DetailForm.vl_introduction" readonly  type="textarea"></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+            <el-form-item label="手机验证绑定" prop="vl_need_binding" label-width="120px">
+                <el-select v-model="DetailForm.vl_need_binding" disabled>
+                    <el-option label="否" value="0"></el-option>
+                    <el-option label="是" value="1"></el-option>
+                    <el-option label="只需手机号" value="2"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+        <el-col :span="7">
+            <el-form-item label="赞助商家" prop="vl_has_sponsor" label-width="120px">
+                <el-select v-model="DetailForm.vl_has_sponsor" disabled>
+                    <el-option label="是" value="1"></el-option>
+                    <el-option label="否" value="0"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-col>
+        <el-col :span="7">
+            <el-form-item label="主页面广告" prop="vl_has_ad" label-width="120px">
+                <el-select v-model="DetailForm.vl_has_ad" disabled>
+                    <el-option label="是" value="1"></el-option>
+                    <el-option label="否" value="0"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+        <el-col :span="7">
+            <el-form-item label="提供设计" prop="vl_has_design" label-width="120px">
+                <el-select v-model="DetailForm.vl_has_design" disabled>
+                    <el-option label="是" value="1"></el-option>
+                    <el-option label="否" value="0"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-col>
+        <el-col :span="7" v-if="Number(DetailForm.vl_has_design)">
+              <el-form-item label="设计需求" prop="vl_design" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_design" readonly></el-input>
+              </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="活动开始时间" prop="vl_starttime" label-width="120px">
+                  <el-date-picker
+                    readonly
+                    type="datetime"
+                    value-format="timestamp"
+                    v-model="DetailForm.vl_starttime"
+                    style="width:16em">
+                  </el-date-picker>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="活动结束时间" prop="vl_endtime" label-width="120px">
+                  <el-date-picker
+                    readonly
+                    type="datetime"
+                    value-format="timestamp"
+                    v-model="DetailForm.vl_endtime"
+                    style="width:16em">
+                  </el-date-picker>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="页面排版" prop="vl_typesetting" label-width="120px">
+                  <!-- <el-input style="width:16em" v-model="DetailForm.vl_typesetting"></el-input> -->
+                    <el-select v-model="DetailForm.vl_typesetting" multiple disabled style="width:16em">
+                        <el-option label="图片" value="图片"></el-option>
+                        <el-option label="排名" value="排名"></el-option>
+                        <el-option label="介绍" value="介绍"></el-option>
+                        <el-option label="投票" value="投票"></el-option>
+                        <el-option label="上传" value="上传"></el-option>
+                    </el-select>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="排版要求" prop="vl_requirements" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_requirements" readonly></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="投票排列顺序" prop="vl_vote_sort" label-width="120px">
+                    <el-select v-model="DetailForm.vl_vote_sort" disabled style="width:16em"> 
+                        <el-option label="排名" value="1"></el-option>
+                        <el-option label="票数" value="2"></el-option>
+                    </el-select>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="投票类别" prop="vl_type" label-width="120px">
+                    <el-select v-model="DetailForm.vl_type" disabled style="width:16em">
+                        <el-option label="常规" value="1"></el-option>
+                        <el-option label="报名式" value="2"></el-option>
+                    </el-select>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg" v-if="DetailForm.vl_type == '2'">
+          <el-col :span="7">
+              <el-form-item label="参赛对象" prop="vl_contestants" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_contestants" readonly></el-input>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="参选方式" prop="vl_select_way" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_select_way" readonly></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="权限设置" prop="vl_set_permission" label-width="120px">
+                    <el-select v-model="DetailForm.vl_set_permission" disabled style="width:16em">
+                        <el-option label="每个ID只限一票" value="每个ID只限一票"></el-option>
+                        <el-option label="n日n票" value="n日n票"></el-option>
+                    </el-select>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="色调" prop="vl_color" label-width="120px">
+                    <el-color-picker
+                        disabled
+                        v-model="DetailForm.vl_color"
+                        color-format="rgb">
+                    </el-color-picker>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="图片展示方式" prop="vl_img_show" label-width="120px">
+                    <el-select v-model="DetailForm.vl_img_show" disabled style="width:16em">
+                        <el-option label="瀑布流" value="1"></el-option>
+                        <el-option label="一对一" value="2"></el-option>
+                        <el-option label="自定义" value="3"></el-option>
+                    </el-select>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="填表日期" prop="vl_date" label-width="120px">
+                  <el-date-picker
+                    readonly
+                    type="date"
+                    v-model="DetailForm.vl_date"
+                    style="width:16em">
+                  </el-date-picker>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+              <el-form-item label="对接人" prop="vl_abutment" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_abutment" readonly></el-input>
+              </el-form-item>
+          </el-col>
+          <el-col :span="7">
+              <el-form-item label="对接人手机" prop="vl_phone" label-width="120px">
+                  <el-input style="width:16em" v-model="DetailForm.vl_phone" readonly></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+              <el-form-item label="分享标题内容" prop="vl_share_title" label-width="120px">
+                  <el-input style="width:100%" v-model="DetailForm.vl_share_title" readonly></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+              <el-form-item label="分享描述信息" prop="vl_share_content" label-width="120px">
+                  <el-input style="width:100%" type="textarea" v-model="DetailForm.vl_share_content" readonly></el-input>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+              <el-form-item label="广告轮播图" prop="ad_imgs" label-width="120px">
+                <el-upload
+                    disabled
+                    :action="DetailUploadUrl"
+                    list-type="picture-card"
+                    :on-success="handleDetailUploadSuccess"
+                    :on-preview="handleDetailPreview"
+                    :on-remove="handleDetailUploadRemove"
+                    :file-list="DetailUploadFileList"
+                    :limit="4">
+                    <i class="el-icon-plus"></i>
+                </el-upload>
+                <el-dialog :visible.sync="DetailPreviewDialogVisible">
+                    <img width="100%" :src="DetailPreviewDialogImageUrl" alt="">
+                </el-dialog>
+              </el-form-item>
+          </el-col>
+      </el-row>
+      
+
+    </el-form>
+
+    <el-footer>
+      <el-button type="primary" @click="goBack" size="small" icon="el-icon-arrow-left">返回</el-button>
+    </el-footer>
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 时间过滤器
+import {formatDate} from '@/filter/date.js';
+
+export default {
+  name: 'componentspage1',
+  data() {
+      return {
+        DetailForm : {},
+        DetailUploadUrl : `${api.dev}/p/vote/manager/uploadFile?access_token=${getToken()}`, // 上传图片路径
+        DetailUploadFileList : [], // 上传图片的组成的一个数组
+        DetailPreviewDialogVisible : false, // 默认放大图片为false
+        DetailPreviewDialogImageUrl : '' , // 放大图片的路径
+      }
+  },
+  methods : {
+    goBack() {
+        this.$router.back(-1);
+    },
+    getInfo() {
+      this.$http.post(`${api.dev}/p/vote/manager/select`,{access_token:getToken(),vl_id:this.$route.params.id},{emulateJSON: true}).then(res => {
+        if(res.body.code == 200) {
+            if(res.body.content.vl_has_sponsor == true) {
+                res.body.content.vl_has_sponsor = '1'
+            }else {
+                res.body.content.vl_has_sponsor = '0'
+            }
+
+            if(res.body.content.vl_has_ad == true) {
+                res.body.content.vl_has_ad = '1'
+            }else {
+                res.body.content.vl_has_ad = '0'
+            }
+
+            if(res.body.content.vl_has_design == true) {
+                res.body.content.vl_has_design = '1'
+            }else {
+                res.body.content.vl_has_design = '0'
+            }
+            
+            if(res.body.content.vl_need_binding == '0') {
+                res.body.content.vl_need_binding = '0'
+            }else if(res.body.content.vl_need_binding == '1') {
+                res.body.content.vl_need_binding = '1'
+            }else {
+                res.body.content.vl_need_binding = '2'
+            }
+
+            this.DetailForm = res.body.content;
+
+            for(var i = 0 ; i < res.body.content.ad_imgs.length ; i++) {
+                this.DetailUploadFileList.push({url: `${api.address}${res.body.content.ad_imgs[i]}`})
+            }
+            // 过滤
+            this.DetailForm.vl_type = (res.body.content.vl_type).toString();
+            this.DetailForm.vl_vote_sort = (res.body.content.vl_vote_sort).toString();
+        }else if(res.body.code == 500) {
+            this.$message({
+                message: res.body.msg,
+                type: 'error'
+            });
+            removeToken();
+            setTimeout(function () {
+                this.$router.push({path: '/login'})
+            },2000)
+        }
+      })
+    },
+    // 上传成功后图片的处理函数
+    handleDetailUploadSuccess(res,file,fileList) {
+        this.DetailForm.ad_imgs.push(res.content);
+        this.DetailUploadFileList.push(file);
+    },
+    // 删除图片的回调函数
+    handleDetailUploadRemove(file,fileList) {
+        
+    },
+    // 放大图片
+    handleDetailPreview(file) {
+        this.DetailPreviewDialogVisible = true;
+        this.DetailPreviewDialogImageUrl = file.url;
+    }
+  },
+  created() {
+    this.getInfo();
+  }
+}
+</script>
+
+<style lang="stylus" scoped>
+.el-footer 
+    background-color #A3C0D1;
+    color #333;
+    line-height 60px;
+    position absolute;
+    width 100%;
+    bottom 0;
+    z-index 9999
+</style>

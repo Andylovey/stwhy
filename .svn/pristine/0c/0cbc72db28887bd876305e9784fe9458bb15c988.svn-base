@@ -1,0 +1,1303 @@
+<template>
+  <div>
+    <el-tabs tab-position="left" @tab-click="handleClickTopic">
+        <el-tab-pane v-for="item in topicMsg" :key="item.t_id">
+            <span slot="label">{{item.t_name}}</span>
+            <router-link :to="'/seminar/column/columnadd/add'">
+                <el-button type="primary" v-if="permissionAdd" class="AddVillageBtn"><i class="el-icon-edit"></i> 新增</el-button>
+            </router-link>
+            <el-button v-if="permissionSetField" @click="handleSetFieldVisible" type="primary">设置字段</el-button>
+            <!-- <el-table
+                v-loading="loading"
+                element-loading-text="拼命加载中"
+                element-loading-spinner="el-icon-loading"
+                element-loading-background="rgba(0, 0, 0, 0.8)"
+                :data="tableData"
+                border
+                style="width: 100%">
+                <el-table-column
+                prop="c_haschild"
+                label="是否有子栏目"
+                sortable
+                align="center"
+                width="150">
+                </el-table-column>
+                <el-table-column
+                prop="c_name"
+                label="名称"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_type"
+                label="类型"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_director"
+                label="栏目负责人"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_article"
+                label="文章id"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_single"
+                label="页面"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_fid"
+                label="父级ID"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_children"
+                label="子栏目"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_sort"
+                label="排序值"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_sub"
+                label="截取长度"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_topic"
+                label="专题ID"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_url"
+                label="链接"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_code"
+                label="代码"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_status"
+                label="状态"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_level"
+                label="级别"
+                sortable
+                align="center"
+                width="120">
+                </el-table-column>
+                <el-table-column
+                prop="c_route"
+                label="详情页面路由ID"
+                sortable
+                align="center"
+                width="150">
+                </el-table-column>
+                <el-table-column
+                fixed="right"
+                label="操作"
+                align="center"
+                width="200">
+                <template slot-scope="scope">
+                    <el-button @click="handleDetail(scope.row)" type="text" size="small">查看</el-button>
+                    <el-button @click="handleEdit(scope.row)" type="text" size="small">编辑</el-button>
+                    <el-button @click="handleDelete(scope.row)" type="text" size="small">删除</el-button>
+                </template>
+                </el-table-column>
+            </el-table> -->
+            <tree-table :data="columnData" border
+                v-loading="loading"
+                element-loading-text="拼命加载中"
+                element-loading-spinner="el-icon-loading"
+                element-loading-background="rgba(0, 0, 0, 0.8)">
+                <!-- 这一段代码写在树形表格的插件中 -->
+                <!-- <el-table-column label="名称">
+                    <template slot-scope="scope">
+                        <span>{{ scope.row.c_name }}</span>
+                    </template>
+                </el-table-column> -->
+                <el-table-column label="类型">
+                    <template slot-scope="scope">
+                        <span>{{ scope.row.c_type_cn }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="页面类型">
+                    <template slot-scope="scope">
+                        <span>{{ scope.row.c_single_cn }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="状态">
+                    <template slot-scope="scope">
+                        <!-- <span>{{ scope.row.c_status_cn }}</span> -->
+                        <el-switch
+                            on-text="启用"
+                            off-text="停用"
+                            active-color="#13ce66" 
+                            inactive-color="#dcdfe6" 
+                            active-value="已发布"
+                            inactive-value="未发布"
+                            v-model="scope.row.c_status_cn" 
+                            @click.native="changeTop(scope.$index,scope.row)">
+                        </el-switch>
+                    </template>
+                </el-table-column>
+                <el-table-column label="栏目负责人">
+                    <template slot-scope="scope">
+                        <span>{{ scope.row.c_director_cn }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column
+                fixed="right"
+                label="操作"
+                align="center"
+                width="200">
+                <template slot-scope="scope">
+                    <!-- <el-button @click="handleDetail(scope.row)" type="text" size="small">查看</el-button> -->
+                    <!-- <el-button @click="handleEdit(scope.row)" type="text" size="small">编辑</el-button> -->
+                    <!-- <el-button @click="handleDelete(scope.row)" type="text" size="small">删除</el-button> -->
+                      <router-link :to="'/seminar/column/columndetail/'+scope.row.c_id">
+                          <el-button v-if="permissionDetail" type="text" size="small">查看</el-button>
+                      </router-link>
+                      <router-link :to="'/seminar/column/columnedit/'+scope.row.c_id">
+                          <el-button v-if="permissionEdit" type="text" size="small" style="margin-left:10px">编辑</el-button>
+                      </router-link>
+                      <el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small" style="margin-left:10px">删除</el-button>
+                </template>
+                </el-table-column>
+            </tree-table>
+
+        </el-tab-pane>
+    </el-tabs>
+
+    <!-- 详情模态框 -->
+    <el-dialog
+      :visible.sync="DetailDialogTableVisible"
+      title="栏目管理详情" 
+      top="25px"
+      :close-on-click-modal="false">
+      <!-- 表单 -->
+      <el-form ref="DetailForm" :model="DetailForm" label-width="100px">
+          <el-form-item label="名称">
+            <el-input v-model="DetailForm.c_name" disabled></el-input>
+          </el-form-item>
+          <el-form-item label="类型">
+            <el-radio v-model="DetailForm.c_type" label="0" disabled>资讯</el-radio>
+            <el-radio v-model="DetailForm.c_type" label="1" disabled>活动</el-radio>
+            <el-radio v-model="DetailForm.c_type" label="2" disabled>攻略</el-radio>
+          </el-form-item>
+          <el-form-item label="是否有子栏目">
+            <el-radio v-model="DetailForm.c_haschild" label="0" disabled>否</el-radio>
+            <el-radio v-model="DetailForm.c_haschild" label="1" disabled>是</el-radio>
+          </el-form-item>
+          <!-- <el-form-item label="记录数">
+            <el-input v-model="DetailForm.c_amount" disabled></el-input>
+          </el-form-item> -->
+          <!-- <el-form-item label="序号">
+            <el-input v-model="DetailForm.c_id" disabled></el-input>
+          </el-form-item> -->
+          <el-form-item label="栏目负责人">
+            <!-- <el-input v-model="DetailForm.c_director" disabled></el-input> -->
+            <el-select v-model="DetailForm.c_director" placeholder="请选择" disabled>
+              <el-option
+                v-for="item in selectAdminOptions"
+                :key="item.id"
+                :label="item.name"
+                :value="item.name">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <!-- <el-form-item label="文章ID">
+            <el-input v-model="DetailForm.c_article" disabled></el-input>
+          </el-form-item> -->
+          <el-form-item label="页面">
+            <el-radio v-model="DetailForm.c_single" label="0" disabled>单页面</el-radio>
+            <el-radio v-model="DetailForm.c_single" label="1" disabled>列表</el-radio>
+          </el-form-item>
+          <el-form-item label="父级">
+            <el-input v-model="DetailForm.c_fid" disabled></el-input>
+          </el-form-item>
+          <el-form-item label="排序值">
+            <el-input v-model="DetailForm.c_sort" disabled></el-input>
+          </el-form-item>
+          <!-- <el-form-item label="截取长度">
+            <el-input v-model="DetailForm.c_sub" disabled></el-input>
+          </el-form-item> -->
+          <el-form-item label="专题">
+            <!-- <el-input v-model="DetailForm.c_topic" disabled></el-input> -->
+            <el-select v-model="DetailForm.c_topic" placeholder="请选择" disabled>
+              <el-option
+                v-for="item in topicOptions"
+                :key="item.t_id"
+                :label="item.t_name"
+                :value="item.t_id">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="链接">
+            <el-input v-model="DetailForm.c_url" disabled></el-input>
+          </el-form-item>
+          <el-form-item label="代码">
+            <el-input v-model="DetailForm.c_code" disabled></el-input>
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-radio v-model="DetailForm.c_status" label="0" disabled>未发布</el-radio>
+            <el-radio v-model="DetailForm.c_status" label="1" disabled>已发布</el-radio>
+          </el-form-item>
+          <!-- <el-form-item label="级别">
+            <el-input v-model="DetailForm.c_level" disabled></el-input>
+          </el-form-item> -->
+          <!-- <el-form-item label="详情路由ID">
+            <el-input v-model="DetailForm.c_route" disabled></el-input>
+          </el-form-item> -->
+      </el-form>
+    </el-dialog>
+
+    <!-- 编辑模态框 -->
+    <el-dialog
+      :visible.sync="EditDialogTableVisible"
+      title="栏目管理编辑" 
+      top="25px"
+      :close-on-click-modal="false">
+      <!-- 表单 -->
+      <el-form ref="EditForm" :model="EditForm" label-width="110px" :rules="EditRules">
+          <el-form-item label="名称" prop="c_name">
+            <el-input v-model="EditForm.c_name"></el-input>
+          </el-form-item>
+          <el-form-item label="类型" prop="c_type">
+            <el-radio v-model="EditForm.c_type" label="0">资讯</el-radio>
+            <el-radio v-model="EditForm.c_type" label="1">活动</el-radio>
+            <el-radio v-model="EditForm.c_type" label="2">攻略</el-radio>
+          </el-form-item>
+          <el-form-item label="是否有子栏目" prop="c_haschild">
+            <el-radio v-model="EditForm.c_haschild" label="0">否</el-radio>
+            <el-radio v-model="EditForm.c_haschild" label="1">是</el-radio>
+          </el-form-item>
+          <!-- <el-form-item label="记录数" prop="c_amount">
+            <el-input v-model="EditForm.c_amount"></el-input>
+          </el-form-item> -->
+          <!-- <el-form-item label="序号" prop="c_id">
+            <el-input v-model="EditForm.c_id"></el-input>
+          </el-form-item> -->
+          <el-form-item label="栏目负责人" prop="c_director">
+            <!-- <el-input v-model="EditForm.c_director"></el-input> -->
+            <el-select v-model="EditForm.c_director" placeholder="请选择">
+              <el-option
+                v-for="item in selectAdminOptions"
+                :key="item.id"
+                :label="item.name"
+                :value="item.name">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <!-- <el-form-item label="文章ID" prop="c_article">
+            <el-input v-model="EditForm.c_article"></el-input>
+          </el-form-item> -->
+          <el-form-item label="页面" prop="c_single">
+            <el-radio v-model="EditForm.c_single" label="0">单页面</el-radio>
+            <el-radio v-model="EditForm.c_single" label="1">列表</el-radio>
+          </el-form-item>
+          <el-form-item label="排序值" prop="c_sort">
+            <el-input v-model="EditForm.c_sort"></el-input>
+          </el-form-item>
+          <!-- <el-form-item label="截取长度" prop="c_sub">
+            <el-input v-model="EditForm.c_sub"></el-input>
+          </el-form-item> -->
+          <el-form-item label="专题" prop="c_topic">
+            <!-- <el-input v-model="EditForm.c_topic"></el-input> -->
+            <el-select v-model="EditForm.c_topic" placeholder="请选择">
+              <el-option
+                v-for="item in topicOptions"
+                :key="item.t_id"
+                :label="item.t_name"
+                :value="item.t_id">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="所属栏目" prop="c_fid">
+            <!-- <el-input v-model="EditForm.c_fid"></el-input> -->
+            <el-cascader
+                v-model="selectedEditOptions"
+                clearable
+                change-on-select
+                :options="parentEditOptions"
+                @focus="getEditCategory"
+                @change="onProvincesEditChange"
+                :props="parentEditProps"
+                placeholder="请选择"
+                >
+            </el-cascader>
+          </el-form-item>
+          <el-form-item label="链接" prop="c_url">
+            <el-input v-model="EditForm.c_url"></el-input>
+          </el-form-item>
+          <el-form-item label="代码" prop="c_code">
+            <el-input v-model="EditForm.c_code"></el-input>
+          </el-form-item>
+          <el-form-item label="状态" prop="c_status">
+            <el-radio v-model="EditForm.c_status" label="0">未发布</el-radio>
+            <el-radio v-model="EditForm.c_status" label="1">已发布</el-radio>
+          </el-form-item>
+          <!-- <el-form-item label="级别" prop="c_level">
+            <el-input v-model="EditForm.c_level"></el-input>
+          </el-form-item> -->
+          <!-- <el-form-item label="详情路由ID" prop="c_route">
+            <el-input v-model="EditForm.c_route"></el-input>
+          </el-form-item> -->
+          <el-form-item>
+            <el-button type="primary" @click="submitEditForm('EditForm')">提交</el-button>
+            <el-button @click="cancleEditForm('EditForm')">取消</el-button>
+          </el-form-item>
+      </el-form>
+    </el-dialog>
+
+    <!-- 新建栏目管理 -->
+    <el-dialog
+      :visible.sync="AddDialogTableVisible"
+      title="新建栏目管理" 
+      top="25px"
+      :close-on-click-modal="false"
+      @closed="AddDialogClosed('AddForm')">
+      <!-- 表单 -->
+      <el-form ref="AddForm" :model="AddForm" label-width="110px" :rules="AddRules">
+          <el-form-item label="名称" prop="c_name">
+            <el-input v-model="AddForm.c_name"></el-input>
+          </el-form-item>
+          <el-form-item label="类型" prop="c_type">
+            <el-radio v-model="AddForm.c_type" label="0">资讯</el-radio>
+            <el-radio v-model="AddForm.c_type" label="1">活动</el-radio>
+            <el-radio v-model="AddForm.c_type" label="2">攻略</el-radio>
+          </el-form-item>
+          <el-form-item label="是否有子栏目" prop="c_haschild">
+            <el-radio v-model="AddForm.c_haschild" label="0">否</el-radio>
+            <el-radio v-model="AddForm.c_haschild" label="1">是</el-radio>
+          </el-form-item>
+          <!-- <el-form-item label="记录数" prop="c_amount">
+            <el-input v-model="AddForm.c_amount"></el-input>
+          </el-form-item> -->
+          <!-- <el-form-item label="序号" prop="c_id">
+            <el-input v-model="AddForm.c_id"></el-input>
+          </el-form-item> -->
+          <el-form-item label="栏目负责人" prop="c_director">
+            <!-- <el-input v-model="AddForm.c_director"></el-input> -->
+            <el-select v-model="AddForm.c_director" placeholder="请选择">
+              <el-option
+                v-for="item in selectAdminOptions"
+                :key="item.id"
+                :label="item.name"
+                :value="item.name">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <!-- <el-form-item label="文章ID" prop="c_article">
+            <el-input v-model="AddForm.c_article"></el-input>
+          </el-form-item> -->
+          <el-form-item label="页面" prop="c_single">
+            <el-radio v-model="AddForm.c_single" label="0">单页面</el-radio>
+            <el-radio v-model="AddForm.c_single" label="1">列表</el-radio>
+          </el-form-item>
+          <el-form-item label="专题" prop="c_topic">
+            <!-- <el-input v-model="AddForm.c_topic"></el-input> -->
+            <el-select v-model="AddForm.c_topic" placeholder="请选择">
+              <el-option
+                v-for="item in topicOptions"
+                :key="item.t_id"
+                :label="item.t_name"
+                :value="item.t_id">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="所属栏目" prop="c_fid">
+            <!-- <el-input v-model="AddForm.c_fid"></el-input> -->
+            <el-cascader
+                clearable
+                change-on-select
+                :options="parentAddOptions"
+                @focus="getAddCategory"
+                @change="onProvincesAddChange"
+                :props="parentAddProps"
+                placeholder="请选择"
+                >
+            </el-cascader>
+          </el-form-item>
+          <el-form-item label="排序值" prop="c_sort">
+            <el-input v-model="AddForm.c_sort"></el-input>
+          </el-form-item>
+          <!-- <el-form-item label="截取长度" prop="c_sub">
+            <el-input v-model="AddForm.c_sub"></el-input>
+          </el-form-item> -->
+          <el-form-item label="链接" prop="c_url">
+            <el-input v-model="AddForm.c_url"></el-input>
+          </el-form-item>
+          <el-form-item label="代码" prop="c_code">
+            <el-input v-model="AddForm.c_code"></el-input>
+          </el-form-item>
+          <el-form-item label="状态" prop="c_status">
+            <el-radio v-model="AddForm.c_status" label="0">未发布</el-radio>
+            <el-radio v-model="AddForm.c_status" label="1">已发布</el-radio>
+          </el-form-item>
+          <!-- <el-form-item label="级别" prop="c_level">
+            <el-input v-model="AddForm.c_level"></el-input>
+          </el-form-item> -->
+          <!-- <el-form-item label="详情路由ID" prop="c_route">
+            <el-input v-model="AddForm.c_route"></el-input>
+          </el-form-item> -->
+          <el-form-item>
+            <el-button type="primary" @click="submitAddForm('AddForm')">提交</el-button>
+            <el-button @click="cancleAddForm('AddForm')">取消</el-button>
+          </el-form-item>
+      </el-form>
+    </el-dialog>
+
+    <el-dialog
+        :visible.sync="setFieldDialogTableVisibleModel"
+        v-elDragDialog
+        title="设置字段"
+        :close-on-click-modal="false"
+        width="400px">
+        <el-cascader
+            :options="options"
+            @change="onProvincesChange"
+            @focus="getCategory"
+            :props="props"
+            placeholder="请选择栏目"
+            >
+        </el-cascader>
+        <el-button type="primary" style="margin-left: 10px" @click="handleSetField">编辑</el-button>
+    </el-dialog>
+
+    <!-- 设置字段弹窗 -->
+    <el-dialog
+      v-elDragDialog
+      :visible.sync="setFieldForm"
+      @closed="setFieldDialogClosed"
+      title="自定义字段"
+      width="500px" 
+      :close-on-click-modal="false">
+      <el-form>
+        <el-row type="flex" class="row-bg" style="height:300px;overflow-y:scroll;padding-bottom:50px;">
+          <el-col :span="6">
+            <el-form-item>
+                <el-checkbox-group v-for="item in getFieldArr" :key="item.f_id" v-model="checkList">
+                  <el-checkbox :label="item.f_id">{{item.f_name}}</el-checkbox>
+                </el-checkbox-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item>
+              <el-checkbox-group v-for="item in getFieldArr" :key="item.f_id" v-model="mustCheckList">
+                <el-checkbox :label="item.f_id">必选</el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <div style="margin-top:10px;float:right;">
+        <el-button type="primary" size="small" @click="handleSetFieldConfirm">确定</el-button>
+        <el-button type="primary" size="small" @click="handleSetFieldCancle">取消</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 树形表格
+import treeTable from '@/components/TreeTable'
+// 引用拖拽
+import elDragDialog from '@/directive/el-dragDialog';
+
+import { Loading } from 'element-ui';
+
+export default {
+  name: 'column',
+  directives : {elDragDialog},
+  components: { treeTable },
+  data() {
+      return {
+          topicMsg : [], // 专题信息
+        //   tableData : [], // 存放各个专题对应的栏目信息
+          topicId : 1, // 专题的ID 
+          loading : true, // 加载条
+
+
+          // 查看详情的数据
+          DetailDialogTableVisible : false, // 详情框默认的模态框
+          DetailForm : {
+              c_haschild : '',
+              c_name : '',
+              c_type : '',
+              c_amount : '',
+              c_id : '',
+              c_director : '',
+              c_article : '',
+              c_single : '',
+              c_fid : '',
+              c_sort : '',
+              c_sub : '',
+              c_topic : '',
+              c_url : '',
+              c_code : '',
+              c_status : '',
+              c_level : '',
+              c_route : '',
+          },
+
+            // 编辑的数据
+            EditDialogTableVisible : false, // 编辑框默认的模态框
+            EditForm : {
+              c_haschild : '',
+              c_name : '',
+              c_type : '',
+              c_amount : '',
+              c_id : '',
+              c_director : '',
+              c_article : '',
+              c_single : '',
+              c_fid : '',
+              c_sort : '',
+              c_sub : '',
+              c_topic : '',
+              c_url : '',
+              c_code : '',
+              c_status : '',
+              c_level : '',
+              c_route : '',
+            },
+            EditRules : {
+                c_haschild : [{required: true,message : '请选择子栏目', trigger: 'blur'}],
+                c_name : [{required: true,message : '请输入名称', trigger: 'blur'}],
+                c_type : [{required: true,message : '请选择类型', trigger: 'blur'}],
+                // c_amount : [{required: true,message : '请输入记录数', trigger: 'blur'}],
+                // c_id : [{required: true,message : '请输入序号', trigger: 'blur'}],
+                c_director : [{required: true,message : '请选择栏目负责人', trigger: 'blur'}],
+                // c_article : [{required: true,message : '请输入文章ID', trigger: 'blur'}],
+                c_single : [{required: true,message : '请选择页面类型', trigger: 'blur'}],
+                // c_fid : [{required: true,message : '请选择父级', trigger: 'blur'}],
+                c_sort : [{required: true,message : '请输入排序值', trigger: 'blur'}],
+                // c_sub : [{required: true,message : '请输入截取长度', trigger: 'blur'}],
+                c_topic : [{required: true,message : '请选择专题', trigger: 'blur'}],
+                c_url : [{required: true,message : '请输入链接', trigger: 'blur'}],
+                c_code : [{required: true,message : '请输入代码', trigger: 'blur'}],
+                c_status : [{required: true,message : '请选择状态', trigger: 'blur'}],
+                // c_level : [{required: true,message : '请输入级别', trigger: 'blur'}],
+                // c_route : [{required: true,message : '请输入详情路由ID', trigger: 'blur'}],
+            },
+
+            // 新建的数据
+            AddDialogTableVisible : false,
+            AddForm : {
+                c_haschild : '',
+                c_name : '',
+                c_type : '',
+                c_amount : '',
+                c_id : '',
+                c_director : '',
+                c_article : '',
+                c_single : '',
+                c_fid : '',
+                c_sort : '',
+                c_sub : '',
+                c_topic : '',
+                c_url : '',
+                c_code : '',
+                c_status : '',
+                c_level : '',
+                c_route : '',
+            },
+            AddRules : {
+                c_haschild : [{required: true,message : '请选择子栏目', trigger: 'blur'}],
+                c_name : [{required: true,message : '请输入名称', trigger: 'blur'}],
+                c_type : [{required: true,message : '请选择类型', trigger: 'blur'}],
+                // c_amount : [{required: true,message : '请输入记录数', trigger: 'blur'}],
+                // c_id : [{required: true,message : '请输入序号', trigger: 'blur'}],
+                c_director : [{required: true,message : '请选择栏目负责人', trigger: 'blur'}],
+                // c_article : [{required: true,message : '请输入文章ID', trigger: 'blur'}],
+                c_single : [{required: true,message : '请选择页面类型', trigger: 'blur'}],
+                // c_fid : [{required: true,message : '请选择父级', trigger: 'blur'}],
+                c_sort : [{required: true,message : '请输入排序值', trigger: 'blur'}],
+                // c_sub : [{required: true,message : '请输入截取长度', trigger: 'blur'}],
+                c_topic : [{required: true,message : '请选择专题', trigger: 'blur'}],
+                c_url : [{required: true,message : '请输入链接', trigger: 'blur'}],
+                c_code : [{required: true,message : '请输入代码', trigger: 'blur'}],
+                c_status : [{required: true,message : '请选择状态', trigger: 'blur'}],
+                // c_level : [{required: true,message : '请输入级别', trigger: 'blur'}],
+                // c_route : [{required: true,message : '请输入详情路由ID', trigger: 'blur'}],
+            },
+
+            setFieldDialogTableVisibleModel: false,
+
+            setFieldForm : false,
+            getFieldArr : [],
+            checkList : [],  // checkbox 数组
+            checked : false,
+            mustCheckList : [], // 必选数组
+            category_id : '' , // 栏目ID 
+
+            options: [],
+            props : {
+                value: 'c_id',
+                label:'c_name',
+                children: 'c_children'
+            },
+
+            columnData : {}, // table表格数据
+
+            selectAdminOptions : [], // 栏目负责人
+            topicOptions : [] , // 专题数组，遍历后可获取专题ID
+            parentEditOptions : [] , // 父级选择框
+            parentEditProps : {
+              value: 'c_id',
+              label:'c_name',
+              children: 'c_children'
+            },
+
+            parentAddOptions : [] , // 父级选择框
+            parentAddProps : {
+              value: 'c_id',
+              label:'c_name',
+              children: 'c_children'
+            },
+            selectedEditOptions : [],
+
+
+            // 权限按钮控制
+            permissionShow : false,
+            permissionAdd : false,
+            permissionEdit : false,
+            permissionDelete : false,
+            permissionDetail : false,
+            permissionSetField : false,
+      }
+  },
+  methods : {
+    getSubPermission() {
+          this.$http.get(`${api.dev}/p/permission/getSub`,{params: {access_token : getToken(), p_id : this.$route.params.id}}).then(res => {
+              if(res.body.code == 200) {
+                res.body.content.forEach(item => {
+                    if(item.p_name.indexOf('显示') > -1) {
+                        this.permissionShow = true;
+                    }else if(item.p_name.indexOf('新建') > -1) {
+                        this.permissionAdd = true
+                    }else if(item.p_name.indexOf('修改') > -1) {
+                        this.permissionEdit = true
+                    }else if(item.p_name.indexOf('删除') > -1) {
+                        this.permissionDelete = true
+                    }else if(item.p_name.indexOf('查看') > -1) {
+                        this.permissionDetail = true
+                    }else if(item.p_name == '栏目设置字段') {
+                        this.permissionSetField = true
+                    }
+                })
+              }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '/stwhy';
+                },2000) 
+              }
+          })
+      },
+      // 获取栏目负责人
+      getSelectAdmin() {
+        this.$http.get(`${api.dev}/p/main/drop/selectAdmin`,{params: {access_token: getToken(), type : 0}}).then(res => {
+          if(res.body.code == 200) {
+            this.selectAdminOptions = res.body.content;
+          }else if(res.body.code == 500) {
+            this.$message({
+              message: res.body.msg,
+              type: 'error'
+            });
+            removeToken();
+            setTimeout(function () {
+              window.location.href = '/stwhy';
+            },2000)
+          }
+        })
+      },
+      // 获取所有专题
+      getAllTopic() {
+          this.$http.get(`${api.dev}/p/main/topic/getAll`,{params : {access_token : getToken()}}).then(res => {
+              if(res.body.code == 200) {
+                  this.openFullScreen().close();
+                  this.topicMsg = res.body.content;
+                  this.topicOptions = res.body.content;
+              }else if(res.body.code == 500) {
+                  this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                  });
+                  removeToken();
+                  setTimeout(function () {
+                    window.location.href = '/stwhy';
+                  },2000)
+              }
+          })
+      },
+      // 进入页面后全屏加载
+      openFullScreen() {
+          var load = Loading.service({
+                lock: true,
+                text: 'Loading',
+                spinner: 'el-icon-loading',
+                background: 'rgba(0, 0, 0, 0.7)'
+          });
+          return load;  // 把load这个变量return出去好让获取到数据的时候会调用到它
+      },
+      // 点击tab卡获取对应的栏目信息
+      handleClickTopic(tab,event) {
+         this.loading = true;
+         this.topicId = this.topicMsg[tab.index].t_id; // 获取专题索引值的对应的ID
+         this.options = [];
+         var result = [];
+         this.$http.get(`${api.dev}/p/main/category/show`,{params : {access_token : getToken() , c_topic : this.topicId}}).then(res => {
+             if(res.body.code == 200) {
+                //  this.tableData = res.body.content;
+                this.loading = false;
+                result = res.body.content;
+                for(var i = 0 ; i < result.length ; i++) {
+                    result[i].children = result[i].c_children;
+                }
+                this.columnData = result;
+             }else if(res.body.code == 500) {
+                this.$message({
+                message: res.body.msg,
+                type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                window.location.href = '/stwhy';
+                },2000)
+             }
+         })
+      },
+      // 已进入就页面后需要获取第一条专题的栏目信息
+      getFirstTopic() {
+          var result = [];
+          this.$http.get(`${api.dev}/p/main/category/show`,{params : {access_token : getToken() , c_topic : this.topicId}}).then(res => {
+              if(res.body.code == 200) {
+                //  this.tableData = res.body.content;
+                this.loading = false;
+                result = res.body.content;
+                for(var i = 0 ; i < result.length ; i++) {
+                    result[i].children = result[i].c_children;
+                }
+                this.columnData = result;
+             }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '/stwhy';
+                },2000)
+             }
+          })
+      },
+      // 处理查看操作
+      handleDetail(row) {
+          // 开启加载器
+          const loading = this.$loading({
+                lock: true,
+                text: 'Loading',
+                spinner: 'el-icon-loading',
+                background: 'rgba(0, 0, 0, 0.7)'
+          });
+          this.$http.get(`${api.dev}/p/main/category/select`,{params : {access_token : getToken() , c_id : row.c_id}}).then(res => {
+              if(res.body.code == 200) {
+                  loading.close();
+                  this.DetailDialogTableVisible = true;
+
+                  this.DetailForm.c_haschild = (res.body.content.category.c_haschild).toString();
+                  this.DetailForm.c_name = res.body.content.category.c_name;
+                  this.DetailForm.c_type = (res.body.content.category.c_type).toString();
+                  this.DetailForm.c_amount = res.body.content.category.c_amount;
+                  this.DetailForm.c_id = res.body.content.category.c_id;
+                  this.DetailForm.c_director = res.body.content.category.c_director;
+                  this.DetailForm.c_article = res.body.content.category.c_article;
+                  this.DetailForm.c_single = (res.body.content.category.c_single).toString();
+                  this.DetailForm.c_fid = res.body.content.category.c_fid;
+                  this.DetailForm.c_sort = res.body.content.category.c_sort;
+                  this.DetailForm.c_sub = res.body.content.category.c_sub;
+                  this.DetailForm.c_topic = res.body.content.category.c_topic;
+                  this.DetailForm.c_url = res.body.content.category.c_url;
+                  this.DetailForm.c_code = res.body.content.category.c_code;
+                  this.DetailForm.c_status = (res.body.content.category.c_status).toString();
+                  this.DetailForm.c_level = res.body.content.category.c_level;
+                  this.DetailForm.c_route = res.body.content.category.c_route;
+              }else if(res.body.code == 500) {
+                  this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                  });
+                  removeToken();
+                  setTimeout(function () {
+                    window.location.href = '/stwhy';
+                  },2000)
+              }
+          })
+      },
+      // 处理编辑操作
+      handleEdit(row) {
+           // 开启加载器
+            const loading = this.$loading({
+                lock: true,
+                text: 'Loading',
+                spinner: 'el-icon-loading',
+                background: 'rgba(0, 0, 0, 0.7)'
+            });
+            this.$http.get(`${api.dev}/p/main/category/select`,{params : {access_token : getToken() , c_id : row.c_id}}).then(res => {
+                if(res.body.code == 200) {
+                    loading.close();
+                    this.EditDialogTableVisible = true;
+
+                    this.EditForm.c_haschild = (res.body.content.category.c_haschild).toString();
+                    this.EditForm.c_name = res.body.content.category.c_name;
+                    this.EditForm.c_type = (res.body.content.category.c_type).toString();
+                    this.EditForm.c_amount = res.body.content.category.c_amount;
+                    this.EditForm.c_id = res.body.content.category.c_id;
+                    this.EditForm.c_director = res.body.content.category.c_director;
+                    this.EditForm.c_article = res.body.content.category.c_article;
+                    this.EditForm.c_single = (res.body.content.category.c_single).toString();
+                    this.EditForm.c_fid = res.body.content.category.c_fid;
+                    this.EditForm.c_sort = res.body.content.category.c_sort;
+                    this.EditForm.c_sub = res.body.content.category.c_sub;
+                    this.EditForm.c_topic = res.body.content.category.c_topic;
+                    this.EditForm.c_url = res.body.content.category.c_url;
+                    this.EditForm.c_code = res.body.content.category.c_code;
+                    this.EditForm.c_status = (res.body.content.category.c_status).toString();
+                    this.EditForm.c_level = res.body.content.category.c_level;
+                    this.EditForm.c_route = res.body.content.category.c_route;
+
+                    this.getEditCategory();
+                    this.selectedEditOptions = [this.EditForm.c_fid]  // 所属栏目的父级ID
+                    // this.selectedEditOptions = [20,21]  // 所属栏目的父级ID
+                }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '/stwhy';
+                    },2000)
+                }
+            })
+      },
+      // 处理删除操作
+      handleDelete(row) {
+            this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.loading = true;
+                this.$http.post(`${api.dev}/p/main/category/delete`,{access_token: getToken(), c_id : row.c_id},{emulateJSON : true}).then(res => {
+                    if(res.body.code == 200) {
+                        this.$message({
+                            message: '删除成功',
+                            type: 'success'
+                        });
+                       this.getFirstTopic(); // 删除完之后重新加载该专题的栏目
+                    }else if(res.body.code == 500) {
+                        this.$message({
+                            message : res.body.msg,
+                            type : 'error'
+                        })
+                    }else if(res.body.code == 510) {
+                        this.$message({
+                            message : res.body.msg,
+                            type : 'error'
+                        })
+                        removeToken();
+                        setTimeout(function () {
+                            window.location.href = '/stwhy';
+                        },2000)
+                    }
+                })
+            })
+      },
+      // 编辑提交
+      submitEditForm(formName) {
+          this.$refs[formName].validate((valid) => {
+              if(valid) {
+                    // 开启加载器
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '正在保存中...',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    var formdata = new FormData();
+                    formdata.append('access_token',getToken());
+                    formdata.append('c_haschild',this.EditForm.c_haschild);
+                    formdata.append('c_name',this.EditForm.c_name);
+                    formdata.append('c_type',this.EditForm.c_type);
+                    // formdata.append('c_amount',this.EditForm.c_amount);
+                    formdata.append('c_id',this.EditForm.c_id);
+                    formdata.append('c_director',this.EditForm.c_director);
+                    // formdata.append('c_article',this.EditForm.c_article);
+                    formdata.append('c_single',this.EditForm.c_single);
+                    // formdata.append('c_fid',this.EditForm.c_fid);
+                    formdata.append('c_sort',this.EditForm.c_sort);
+                    // formdata.append('c_sub',this.EditForm.c_sub);
+                    formdata.append('c_topic',this.EditForm.c_topic);
+                    formdata.append('c_url',this.EditForm.c_url);
+                    formdata.append('c_code',this.EditForm.c_code);
+                    formdata.append('c_status',this.EditForm.c_status);
+                    // formdata.append('c_level',this.EditForm.c_level);
+                    // formdata.append('c_route',this.EditForm.c_route);
+                    if(this.EditForm.c_fid) {
+                      formdata.append('c_fid',this.EditForm.c_fid);
+                    }else {
+                      formdata.append('c_fid',0);
+                      formdata.append('c_level',1);
+                    }
+
+                    this.$http.post(`${api.dev}/p/main/category/update`,formdata,{emulateJSON: true}).then(res => {
+                        if(res.body.code == 200) {
+                            loading.close();
+                            this.EditDialogTableVisible = false;
+                            this.$refs[formName].clearValidate(); // 清除表单验证规则
+                            this.$message({
+                                message: res.body.msg,
+                                type: 'success'
+                            });
+                            this.loading = true;
+                            this.getFirstTopic();
+                        }else if (res.body.code == 500) {
+                            loading.close();
+                            this.$message({
+                                message : res.body.msg,
+                                type : 'error'
+                            })
+                        }
+                    })
+              }else {
+                  console.log('error submit');
+                  return false;
+              }
+          })
+      },
+      // 取消编辑
+      cancleEditForm(formName) {
+            this.EditDialogTableVisible = false;
+            this.$refs[formName].clearValidate(); // 清除表单验证规则
+      },
+      // 新建提交
+      submitAddForm(formName) {
+          this.$refs[formName].validate((valid) => {
+            if(valid) {
+                    // 开启加载器
+                    const loading = this.$loading({
+                        lock: true,
+                        text: '正在保存中...',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    });
+                    var formdata = new FormData();
+                    formdata.append('access_token',getToken());
+                    formdata.append('c_haschild',this.AddForm.c_haschild);
+                    formdata.append('c_name',this.AddForm.c_name);
+                    formdata.append('c_type',this.AddForm.c_type);
+                    // formdata.append('c_amount',this.AddForm.c_amount);
+                    // formdata.append('c_id',this.AddForm.c_id);
+                    formdata.append('c_director',this.AddForm.c_director);
+                    // formdata.append('c_article',this.AddForm.c_article);
+                    formdata.append('c_single',this.AddForm.c_single);
+                    // formdata.append('c_fid',this.AddForm.c_fid);
+                    formdata.append('c_sort',this.AddForm.c_sort);
+                    // formdata.append('c_sub',this.AddForm.c_sub);
+                    formdata.append('c_topic',this.AddForm.c_topic);
+                    formdata.append('c_url',this.AddForm.c_url);
+                    formdata.append('c_code',this.AddForm.c_code);
+                    formdata.append('c_status',this.AddForm.c_status);
+                    // formdata.append('c_level',this.AddForm.c_level);
+                    // formdata.append('c_route',this.AddForm.c_route);
+                    if(this.AddForm.c_fid) {
+                      formdata.append('c_fid',this.AddForm.c_fid);
+                    }else {
+                      formdata.append('c_fid',0);
+                      formdata.append('c_level',1);
+                    }
+
+                    this.$http.post(`${api.dev}/p/main/category/save`,formdata,{emulateJSON: true}).then(res => {
+                        if(res.body.code == 200) {
+                            loading.close();
+                            this.$message({
+                                message: res.body.msg,
+                                type: 'success'
+                            })
+                            this.AddDialogTableVisible = false;
+                            this.loading = true;
+                            this.getFirstTopic();
+                            this.$refs[formName].resetFields(); // 清除表单验证规则 清空表单数据
+                        }else if(res.body.code == 500) {
+                            this.$message({
+                                message: res.body.msg,
+                                type : 'error'
+                            })
+                        }
+                    })
+            }else {
+                console.log('error submit');
+                return false;
+            }           
+          })
+      },
+      // 取消新建
+      cancleAddForm(formName) {
+            this.AddDialogTableVisible = false;
+            this.$refs[formName].clearValidate(); // 清除表单验证规则
+            this.$refs[formName].resetFields();
+            this.parentAddOptions = [];
+      },
+      // 关闭新建操作
+      AddDialogClosed(formName) {
+            this.$refs[formName].clearValidate(); // 清除表单验证规则
+            this.$refs[formName].resetFields();
+            this.parentAddOptions = [];
+      },
+      handleSetField(row) {
+        // console.log(row.c_id) 栏目ID
+        // this.category_id = row.c_id;
+        this.setFieldForm = true;
+        this.$http.get(`${api.dev}/p/main/field/getAll`,{params: {access_token: getToken()}}).then(res => {
+          if(res.body.code == 200) {
+            this.getFieldArr = res.body.content;
+
+            this.$http.get(`${api.dev}/p/main/category/select`,{params: {access_token: getToken(), c_id: this.category_id}}).then(res => {
+              if(res.body.code == 200) {
+                var selectChecked = res.body.content.fields;
+                console.log(selectChecked);
+                for(var i = 0 ; i < this.getFieldArr.length ; i++) {
+                  for(var j = 0 ; j < selectChecked.length ; j++) {
+                    if(this.getFieldArr[i].f_name == selectChecked[j].f_name) {
+                      this.checkList.push(this.getFieldArr[i].f_id);
+                      if(selectChecked[j].f_required == "0") {
+                        this.mustCheckList.push(selectChecked[j].f_id)
+                      }
+                    }
+                  }
+                }
+              }else if(res.body.code == 500) {
+
+              }
+            })
+          }else if(res.body.code == 500) {
+            this.$message({
+                message : res.body.msg,
+                type : 'error'
+            })
+            removeToken();
+            setTimeout(function () {
+                window.location.href = '/stwhy';
+            },2000)
+          }
+        })
+      },
+      handleSetFieldConfirm() {
+        var arr1 = [];
+        for(var i = 0 ; i < this.checkList.length ; i++) {
+          for(var j = 0 ; j < this.mustCheckList.length ; j++) {
+            if(this.checkList[i] == this.mustCheckList[j]) {
+              arr1.push(this.checkList[i])
+            }
+          }
+        }
+
+        var arr2 = this.checkList;
+        for(var n = 0 ; n < arr1.length ; n++) {
+          for(var m = 0 ; m < arr2.length ; m++) {
+            if(arr1[n] == arr2[m]) {
+              arr2.splice(m,1);
+            }
+          }
+        }
+
+        var arr3 = arr1.concat(arr2);
+        // console.log(String(arr3));
+
+        for(var v = 0 ; v < arr1.length ; v++) {
+          arr1[v] = 0
+        }
+        for(var k = 0 ; k < arr2.length ; k++) {
+          arr2[k] = 1
+        }
+        
+        var arr4 = arr1.concat(arr2);
+        console.log(String(arr4));
+        var formdata = new FormData();
+        formdata.append('access_token',getToken());
+        formdata.append('category_id', this.category_id);
+        formdata.append('f_ids', String(arr3));
+        formdata.append('types', String(arr4));
+        this.$http.post(`${api.dev}/p/main/category/setField`,formdata,{emulateJSON: true}).then(res => {
+          if(res.body.code == 200) {
+            this.checkList = [];
+            this.mustCheckList = [];
+            this.$message({
+                message: res.body.msg,
+                type: 'success'
+            })
+            this.setFieldForm = false;
+            this.options = [];
+            this.setFieldDialogTableVisibleModel = false;
+          }else if(res.body.code == 500) {
+            this.checkList = [];
+            this.mustCheckList = [];
+            this.$message({
+                message : res.body.msg,
+                type : 'error'
+            })
+            this.setFieldForm = false;
+          }
+        })
+      },
+      handleSetFieldCancle() {
+        this.checkList = [];
+        this.mustCheckList = [];
+        this.setFieldForm = false;
+      },
+      handleSetFieldVisible() {
+        this.setFieldDialogTableVisibleModel = true;
+      },
+      getCategory(e) {
+        this.$http.get(`${api.dev}/p/main/category/show`,{params: {access_token:getToken(),c_topic:this.topicId}}).then(res => {
+            if(res.body.code == 200) {
+                this.options = res.body.content;
+                
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '/stwhy';
+                },2000)
+            }
+        })
+    },
+    getEditCategory(e) {
+      this.$http.get(`${api.dev}/p/main/category/show`,{params: {access_token:getToken(),c_topic:this.EditForm.c_topic}}).then(res => {
+        if(res.body.code == 200) {
+          this.parentEditOptions = res.body.content;
+        }else if(res.body.code == 500) {
+          this.$message({
+              message: res.body.msg,
+              type: 'error'
+          });
+          removeToken();
+          setTimeout(function () {
+              window.location.href = '/stwhy';
+          },2000)
+        }
+      })
+    },
+    getAddCategory(e) {
+      this.$http.get(`${api.dev}/p/main/category/show`,{params: {access_token:getToken(),c_topic:this.AddForm.c_topic}}).then(res => {
+        if(res.body.code == 200) {
+          this.parentAddOptions = res.body.content;
+        }else if(res.body.code == 500) {
+          this.$message({
+              message: res.body.msg,
+              type: 'error'
+          });
+        }
+      })
+    },
+    // 获取最后一级的id值
+    onProvincesChange(item) {
+        for(var i = 0 ; i < item.length ; i++) {
+            if(i == item.length - 1) {
+                this.category_id = item[i];
+            }
+        }
+    },
+    // 编辑时选择父级ID
+    onProvincesEditChange(item) {
+      for(var i = 0 ; i < item.length ; i++) {
+            if(i == item.length - 1) {
+                this.EditForm.c_fid = item[i];
+            }
+        }
+      if(item.length == 0) {
+        this.EditForm.c_fid = '';
+      }
+    },
+    // 添加时选择父级ID
+    onProvincesAddChange(item) {
+      for(var i = 0 ; i < item.length ; i++) {
+            if(i == item.length - 1) {
+                this.AddForm.c_fid = item[i];
+            }
+        }
+      if(item.length == 0) {
+        this.AddForm.c_fid = '';
+      }
+    },
+    setFieldDialogClosed() {
+      this.checkList = [];
+      this.mustCheckList = [];
+    }
+  },
+  created() {
+      this.getSelectAdmin();
+      this.getAllTopic();
+      this.openFullScreen();
+      this.getFirstTopic();
+      this.getSubPermission();
+  }
+}
+</script>
+
+<style lang="stylus">
+.AddVillageBtn 
+  margin-bottom 10px
+  margin-right 10px
+
+.el-dialog__body
+  padding-bottom 50px
+</style>

@@ -1,0 +1,39 @@
+<template>
+  <div>
+    components page
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+
+export default {
+  name: 'componentspage1',
+  data() {
+      return {
+          
+      }
+  },
+  methods : {
+      getInfo() {
+          this.$http.post(`${api.dev}/p/vote/target/select`,{access_token: getToken(), tl_id : this.$route.params.id},{emulateJSON : true}).then(res => {
+              if(res.body.code == 200) {
+
+              }else if(res.body.code == 500) {
+                  
+              }
+          })
+      }
+  },
+  created() {
+      this.getInfo()
+  }
+}
+</script>
+
+<style lang="stylus" scoped>
+
+</style>

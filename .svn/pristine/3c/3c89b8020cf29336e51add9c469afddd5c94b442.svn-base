@@ -1,0 +1,109 @@
+export default {
+  tags: {
+    handle: '标签操作',
+    closeall: '关闭所有',
+    closeother: '关闭其他'
+  },
+  route: {
+    dashboard: '首页',
+    scenicarea: '景点管理', // scenicarea对应asyncRouterMap.js的scenicarea
+    village: '村落管理',
+    house: '建筑管理',
+    venue: '场馆管理',
+    seminar: '专题管理', // 专题管理
+    symposium: '专题管理',
+    column: '栏目管理',
+    field: '字段管理',
+    friendlink: '友链管理', // 友链管理
+    friendchain: '友链管理', // 友链管理
+    suggestion: '意见管理', // 意见管理
+    objection: '意见管理', // 意见管理
+    attachment: '附件管理', // 附件管理
+    accessory: '附件管理', // 附件管理
+    book: '图书管理', // 图书管理
+    bookinfo: '图书资讯', // 图书资讯管理
+    booksdonate: '赠书芳名', // 赠书芳名
+    booksRecommend: '新书推荐', //新书推荐
+    informationman: '资讯管理', // 资讯管理
+    culturalNews: '文化要闻', // 文化要闻
+    information: '资讯管理',
+    volunteer: '志愿管理',
+    izyzInformation: '志愿资讯管理',
+    izyzActivity: '志愿活动',
+    izyzVolunteer: '志愿者管理',
+    exercise: '活动管理',
+    activity: '活动管理',
+    stratagem: '攻略管理',
+    strategy: '攻略管理',
+    vote: '投票子系统',
+    ballot: '投票管理',
+    signup: '报名管理',
+    target: '对象管理',
+    permission: '设置管理员',
+    datatable: '表格',
+    components: '组件',
+    page1: '组件1',
+    page2: '组件2',
+    page3: '组件3',
+    profile: '个人中心',
+    panels: '查看用户领票记录',
+    user: '用户管理',
+    role: '角色管理',
+    systemLog: '系统日志',
+    website: '网络配置',
+    preference: '用户偏好设置',
+    booking: '预约报名管理',
+    bookingRecord: '用户预约报名记录管理',
+    ticketMGT: '票券管理',
+    userTicketMGT: '用户领票管理',   
+    contributeMGT: '投稿管理',
+    userContributeMGT: '用户投稿记录管理'
+  },
+  app: {
+    switchlang: '切换语言成功',
+    unlock: '解锁'
+  },
+  login: {
+    edenPart1: 'VUE',
+    edenPart2: 'EDEN',
+    title: '系统登录',
+    btn: '登录',
+    radioEN: '英语',
+    radioZH: '中文',
+    forgetpwd: '忘记密码',
+    remember: '记住我',
+    userplaceholder: '请输入用户名',
+    pwdplaceholder: '请输入密码',
+    valid: {
+      userexist: '用户名为空！',
+      pwdexist: '密码为空！'
+    },
+    forget_email: '请输入邮箱',
+    forget_code: '请输入验证码',
+    forget_passwrd: '请输入新密码',
+    confirm_passwrd: '请输入确认密码',
+    forget_btn: '重置',
+    forget_back: '返回',
+    validfaild: '登陆校验未通过，是不是哪里出问题了？',
+    pwdChanged: '密码重置成功！'
+  },
+  sidebarDropDown: {
+    profile: '个人中心',
+    lock: '锁定系统',
+    logout: '退出登录'
+  },
+  msg: {
+    msg1: '你有一条来自管理员的新消息。',
+    msg2: '查看本周伊甸园系统的监控汇报。',
+    msg3: '伊甸园有一些新的升级，来一起看看吧。'
+  },
+  dashboard: {
+    sr: '系统报告',
+    pch: '占比统计',
+    todo: '待办事项'
+  },
+  lock: {
+    locked: '系统已被锁定！',
+    unlock: '系统已解锁成功！'
+  }
+}

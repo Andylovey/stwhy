@@ -1,0 +1,434 @@
+<template>
+	<div class="ballot">
+		<router-link :to="'/vote/ballot/ballotadd/add'" style="float:left">
+			<el-button v-if="permissionAdd" type="primary" class="AddVillageBtn"><i class="el-icon-edit"></i> 新增</el-button>
+		</router-link>
+		<div class="search">
+			<dl>
+				<dt style="margin-left: 0;">投票搜索</dt>
+				<dd><el-input v-model="searchName" placeholder="可搜索投票名称/编码" style="width:200px"></el-input></dd>
+			</dl>
+			<dl>
+				<dt>投票类别</span></dt>
+				<dd>
+					<el-select v-model="searchID1" slot="prepend" placeholder="请选择" style="width:140px" clearable>
+						<el-option label="常规" value="1"></el-option>
+						<el-option label="报名式" value="2"></el-option>
+					</el-select>
+				</dd>
+			</dl>
+			<dl>
+				<dt>审核状态</dt>
+				<dd>
+					<el-select v-model="searchID2" slot="prepend" placeholder="请选择" style="width:140px" clearable>
+						<el-option label="未审核" value="0"></el-option>
+						<el-option label="已审核" value="1"></el-option>
+					</el-select>
+				</dd>
+			</dl>
+			<dl>
+				<dt>发布状态</dt>
+				<dd>
+					<el-select v-model="searchID3" slot="prepend" placeholder="请选择" style="width:140px" clearable>
+						<el-option label="未发布" value="0"></el-option>
+						<el-option label="已发布" value="1"></el-option>
+					</el-select>
+				</dd>
+			</dl>
+			<el-button slot="append" icon="el-icon-search" type="primary" @click="handleSearch()" style="margin-left:10px; margin-bottom: 10px;">搜索</el-button>
+		</div>
+		<el-table
+			v-if="permissionShow"
+			v-loading="loading"
+			element-loading-text="拼命加载中"
+			element-loading-spinner="el-icon-loading"
+			element-loading-background="rgba(0, 0, 0, 0.8)"
+			border
+			stripe
+			:data="tableData"
+			style="width: 100%;"
+			height="calc(100% - 206px)">
+			<el-table-column prop="vl_id" label="序号" sortable min-width="90" align="center"></el-table-column>
+			<el-table-column prop="vl_name" label="投票名称" sortable min-width="180" align="center"></el-table-column>
+			<el-table-column prop="vl_code" label="投票编码" sortable min-width="160" align="center"></el-table-column>
+			<el-table-column prop="vl_typeText" label="投票类别" sortable min-width="140" align="center"></el-table-column>
+			<el-table-column prop="vl_auditText" label="审核状态" sortable min-width="150" align="center"></el-table-column>
+			<el-table-column prop="vl_publishText" label="发布状态" sortable min-width="150" align="center"></el-table-column>
+			<el-table-column prop="vl_starttime" label="活动开始时间" sortable min-width="200" align="center"></el-table-column>
+			<el-table-column prop="vl_endtime" label="活动结束时间" sortable min-width="200" align="center"></el-table-column>
+			<el-table-column prop="vl_createtime" label="填表日期" sortable min-width="200" align="center"></el-table-column>
+			<el-table-column
+				label="操作"
+				align="left"
+				fixed="right"
+				min-width="200">
+				<template slot-scope="scope">
+					<!-- <el-button v-if="permissionDetail" @click="handleDetail(scope.row)" type="text" size="small">查看</el-button> -->
+					<!-- <el-button v-if="permissionEdit" @click="handleEdit(scope.row)" type="text" size="small">编辑</el-button> -->
+					<!-- <el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small">删除</el-button> -->
+					<router-link :to="'/vote/ballot/ballotdetail/'+scope.row.vl_id">
+						<el-button v-if="permissionDetail" type="text" size="small" >查看</el-button>
+					</router-link>
+					<router-link :to="'/vote/ballot/ballotedit/'+scope.row.vl_id">
+						<el-button v-if="permissionEdit && !(scope.row.vl_publish)" type="text" size="small" >编辑</el-button>
+					</router-link>
+					<el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small">删除</el-button>
+					<el-button type="text" size="small" @click="handleAudit(scope.row)" v-if="scope.row.vl_status">
+						<template v-if="scope.row.vl_audit">反审核</template>
+						<template v-else>审核</template>
+					</el-button>
+					<br/>
+					<el-button type="text" size="small" @click="handlePublish(scope.row)" v-if="scope.row.vl_status && scope.row.vl_audit">
+						<template v-if="scope.row.vl_publish">撤回</template>
+						<template v-else>发布</template>
+					</el-button>
+					<el-button type="text" size="small"  @click="toTarget(scope.row)">对象管理</el-button>
+					<el-button type="text" size="small"  @click="toSignup(scope.row)">报名管理</el-button>
+				</template>
+				</el-table-column>
+		</el-table>
+
+		<!-- 分页 -->
+		<div id="pagination">
+			<el-pagination
+				v-if="total!=0"
+				background
+				layout="prev, pager, next,total ,jumper"
+				:total="total"
+				@current-change="handleCurrentChange">
+			</el-pagination>
+		</div>
+
+		<!-- 查看详情的模态框 -->
+		<el-dialog
+			:visible.sync="DetailDialogTableVisible"
+			title="投票管理详情"
+			top="20px" 
+			:close-on-click-modal="false">
+			<!-- 表单 -->
+			<el-form ref="DetailForm" :model="DetailForm" label-width="80px">
+				<el-row type="flex" class="row-bg">
+					<el-col :span="12">
+						<el-form-item label="签约企业名称" prop="ep_name">
+							<el-input style="width:16em"></el-input>
+						</el-form-item>
+					</el-col>
+					<el-col :span="12">
+						<el-form-item label="签约企业名称" prop="ep_name">
+							<el-input style="width:16em"></el-input>
+						</el-form-item>
+					</el-col>
+				</el-row>
+			</el-form>
+		</el-dialog>
+	</div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 时间过滤器
+import {formatDate} from '@/filter/date.js';
+
+export default {
+	name: 'ballot',
+	data() {
+		return {
+			// 权限按钮控制
+			permissionShow : false,
+			permissionAdd : false,
+			permissionEdit : false,
+			permissionDelete : false,
+			permissionDetail : false,
+			permissionCreate : false,
+			
+			loading: true, // 默认加载条
+			tableData : [],
+			total : 0, // 总条数
+			start : 0, // 默认为0
+			limit : 10, // 默认为10
+
+			searchName: '',
+			searchID1: null,  // 默认为null,即全部 投票类别
+			searchID2: null,
+			searchID3: null,
+
+			// 查看详情的数据
+			DetailDialogTableVisible : false, // 详情框默认的模态框
+			DetailForm : {
+					
+			}
+		}
+	},
+	methods : {
+		getSubPermission() {
+			this.$http.get(`${api.dev}/p/permission/getSub`,{params: {access_token : getToken(), p_id : this.$route.params.id}}).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.forEach(item => {
+						if(item.p_name.indexOf('显示') > -1) {
+								this.permissionShow = true;
+						}else if(item.p_name.indexOf('新建') > -1) {
+								this.permissionAdd = true
+						}else if(item.p_name.indexOf('修改') > -1) {
+								this.permissionEdit = true
+						}else if(item.p_name.indexOf('删除') > -1) {
+								this.permissionDelete = true
+						}else if(item.p_name.indexOf('查看') > -1) {
+								this.permissionDetail = true
+						}else if(item.p_name.indexOf('生成') > -1) {
+								this.permissionCreate = true
+						}
+					})
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		getInfo() {
+			this.$http.post(
+				`${api.dev}/p/vote/manager/show`,
+				{
+					access_token: getToken(),
+					start: this.start,
+					limit: this.limit,
+					name1: this.searchName,
+					id1: this.searchID1,
+					id2: this.searchID2,
+					id3: this.searchID3
+				},
+				{ emulateJSON:true }
+			).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.records.forEach(item => {
+						if(item.vl_type == 1) {
+							item.vl_typeText = '常规';
+						}else if(item.vl_type == 2) {
+							item.vl_typeText = '报名式';
+						}else{
+							item.vl_typeText = '';
+						}
+
+						item.vl_starttime = formatDate(new Date(item.vl_starttime),'yyyy-MM-dd hh:mm:ss')
+						item.vl_endtime = formatDate(new Date(item.vl_endtime),'yyyy-MM-dd hh:mm:ss')
+						item.vl_createtime = formatDate(new Date(item.vl_createtime),'yyyy-MM-dd hh:mm:ss')
+
+						if(item.vl_publish) {
+							item.vl_publishText = '已发布';
+						}else if(item.vl_publish == false){
+							item.vl_publishText = '待发布';
+						}else{
+							item.vl_publishText = '';
+						}
+
+						if(item.vl_audit){
+							item.vl_auditText = '已审核';
+						}else if(item.vl_audit == false){
+							item.vl_auditText = '待审核';
+						}else{
+							item.vl_auditText = '';
+						}
+					})
+					this.tableData = res.body.content.records;
+					this.total = res.body.content.total;
+					this.loading = false;
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		// 处理查看操作
+		handleDetail(row) {
+			this.DetailDialogTableVisible = true;
+		},
+		// 处理删除操作
+		handleDelete(row) {
+			this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+				// cancelButtonClass: 'btn-custom-cancel',
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning'
+			}).then(() => {
+				this.loading = true;
+				this.$http.post(`${api.dev}/p/vote/manager/delete`,{access_token:getToken(),vl_id: row.vl_id},{emulateJSON: true}).then(res => {
+					if(res.body.code == 200) {
+						this.$message({
+							message: '删除成功',
+							type: 'success'
+						});
+						this.getInfo();
+					}else if(res.body.code == 500) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+					}else if(res.body.code == 510) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+						removeToken();
+						setTimeout(function () {
+							this.$router.push({path: '/login'})
+						},2000)
+					}
+				})
+			})
+		},
+		// 搜索
+		handleSearch() {
+			this.loading = true;
+			this.getInfo();
+		},
+		// 分页
+		handleCurrentChange(val) {
+			this.loading = true;
+			this.start = 10 * (val - 1);
+			this.getInfo();
+		},
+		handleAudit(row){
+			this.$http.post(`${api.dev}/p/vote/manager/audit`,{access_token: getToken(), vl_id: row.vl_id},{emulateJSON:true}).then(res => {
+				if(res.body.code == 200) {
+					this.$message({
+						message: res.body.msg,
+						type: 'success'
+					});
+					this.getInfo();
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000) 
+				}
+			})
+		},
+		handlePublish(row){
+			this.$http.post(`${api.dev}/p/vote/manager/publish`,{access_token: getToken(), vl_id: row.vl_id},{emulateJSON:true}).then(res => {
+				if(res.body.code == 200) {
+					this.$message({
+						message: res.body.msg,
+						type: 'success'
+					});
+					this.getInfo();
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000) 
+				}
+			})
+		},
+		toTarget(row){
+			var targetId = localStorage.getItem('targetId');
+			this.$router.push({path: `/vote/target/${targetId}`, query: {vlid : row.vl_id }})
+		},
+		toSignup(row){
+			var signupId = localStorage.getItem('signupId');
+			this.$router.push({path: `/vote/signup/${signupId}`, query: {vlid : row.vl_id }})
+		},
+	},
+	created() {
+		this.getSubPermission();
+		this.getInfo();
+	}
+}
+</script>
+
+<style>
+.btn-custom-cancel {
+	float: right;
+	margin-left: 10px;
+}
+</style>
+
+
+<style lang="stylus" scoped>
+#pagination{
+	margin-top 10px
+}
+.search{
+	margin-left 90px
+	text-align right
+	dl{
+		display inline-block
+		margin-top 0
+		margin-bottom 10px
+		dd, dt{
+			display inline-block
+		}
+		dt{
+			margin-left 24px
+			margin-right 12px
+			color #999
+			font-size 14px
+		}
+		dd{
+			margin-left 0
+		}
+	}
+}
+
+</style>
+<style lang="stylus">
+.ballot{
+	.el-table .cell{
+		white-space: normal!important
+		height: auto;
+	}
+	.el-table{
+		.el-button{
+			margin-left: 14px;
+			margin-right: 0;
+			text-align: left;
+		}
+	}
+	thead{
+		th:last-child{
+			text-align: center!important;
+		}
+	}
+}
+</style>

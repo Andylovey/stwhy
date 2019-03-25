@@ -1,0 +1,223 @@
+<template>
+	<div>
+	<!-- 表单 -->
+	<el-form ref="DetailForm" :model="DetailForm" label-width="170px">
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="活动名称" prop="dl_name">
+					<el-input v-model="DetailForm.dl_name" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="14">
+				<el-form-item label="活动规则" prop="dl_rule">
+					<el-input v-model="DetailForm.dl_rule" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="14">
+				<el-form-item label="活动内容" prop="dl_content">
+					<el-input type="textarea" v-model="DetailForm.dl_content" rows="3" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="14">
+				<el-form-item label="活动时间" prop="dl_time">
+					<el-date-picker
+						v-model="DetailForm.dl_time"
+						type="datetimerange"
+						range-separator="-"
+						start-placeholder="开始日期"
+						end-placeholder="结束日期"
+						style="width: 100%;"
+						readonly
+					>
+					</el-date-picker>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="每人每天参与次数" prop="dl_limit">
+					<el-input v-model.number="DetailForm.dl_limit" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="每人最多参与次数" prop="dl_maxtimes">
+					<el-input v-model.number="DetailForm.dl_maxtimes" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="每人最多能中奖次数" prop="dl_maxwin">
+					<el-input v-model.number="DetailForm.dl_maxwin" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="是否有赞助商家" prop="dl_has_sponsor">
+					<el-radio v-model="DetailForm.dl_has_sponsor" label="1" disabled>是</el-radio>
+					<el-radio v-model="DetailForm.dl_has_sponsor" label="0" disabled>否</el-radio>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="主页面是否需要广告" prop="dl_has_ad">
+					<el-radio v-model="DetailForm.dl_has_ad" label="1" disabled>是</el-radio>
+					<el-radio v-model="DetailForm.dl_has_ad" label="0" disabled>否</el-radio>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="是否有提供设计" prop="dl_has_design">
+					<el-radio v-model="DetailForm.dl_has_design" label="1" disabled>是</el-radio>
+					<el-radio v-model="DetailForm.dl_has_design" label="0" disabled>否</el-radio>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="抽奖之前是否需要填写手机号码" prop="dl_need_phone">
+					<el-radio v-model="DetailForm.dl_need_phone" label="1" disabled>是</el-radio>
+					<el-radio v-model="DetailForm.dl_need_phone" label="0" disabled>否</el-radio>
+					<el-radio v-model="DetailForm.dl_need_phone" label="2" disabled>还需要验证码</el-radio>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="设计需求" prop="dl_design">
+					<el-input v-model="DetailForm.dl_design" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="7">
+				<el-form-item label="分享的标题内容" prop="dl_share_title">
+					<el-input v-model="DetailForm.dl_share_title" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+		<el-row type="flex" class="row-bg">
+			<el-col :span="14">
+				<el-form-item label="分享的描述信息" prop="dl_share_content">
+					<el-input type="textarea" v-model="DetailForm.dl_share_content" rows="3" placeholder="分享的描述信息（需要分享功能时，必须填写）" readonly></el-input>
+				</el-form-item>
+			</el-col>
+		</el-row>
+	</el-form>
+
+	<el-footer>
+		<el-button type="primary" @click="goBack" size="small" icon="el-icon-arrow-left">返回</el-button>
+	</el-footer>
+	</div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 时间过滤器
+import {formatDate} from '@/filter/date.js';
+
+export default {
+	name: 'componentspage1',
+	data() {
+		return {
+			DetailForm : {
+				dl_name : '',
+				dl_time : '',
+				dl_rule : '',
+				dl_content : '',
+				dl_limit : '',
+				dl_maxtimes : '',
+				dl_maxwin : '',
+				dl_has_sponsor : '',
+				dl_has_ad : '',
+				dl_has_design : '',
+				dl_need_phone: '',
+				dl_design : '',
+				dl_share_title : '',
+				dl_share_content : ''
+			},
+		}
+	},
+	methods : {
+		goBack() {
+			this.$router.back(-1);
+		},
+		getInfo() {
+			const loading = this.$loading({
+				lock: true,
+				text: 'Loading',
+				spinner: 'el-icon-loading',
+				background: 'rgba(0, 0, 0, 0.7)'
+			});
+			this.$http.post(
+				`${api.dev}/p/luckDraw/list/select`,
+				{
+					access_token: getToken(),
+					dl_id: this.$route.params.id
+				},
+				{emulateJSON : true}
+			).then(res => {
+				if(res.body.code == 200) {
+					var data = res.body.content;
+						data.dl_starttime = formatDate(new Date(data.dl_starttime) , 'yyyy-MM-dd hh:mm:ss');
+						data.dl_endtime = formatDate(new Date(data.dl_endtime) , 'yyyy-MM-dd hh:mm:ss');
+						data.dl_time = [data.dl_starttime, data.dl_endtime];
+						data.dl_has_ad = (data.dl_has_ad) ? '1' : '0' ;
+						data.dl_has_sponsor = (data.dl_has_sponsor) ? '1' : '0' ;
+						data.dl_has_design = (data.dl_has_design) ? '1' : '0' ;
+						data.dl_need_phone = (data.dl_need_phone).toString();
+					this.DetailForm = data;
+					this.DetailDialogTableVisible = true;
+					loading.close();
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					loading.close();
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		}
+	},
+	created() {
+		this.getInfo();
+	}
+}
+</script>
+
+<style lang="stylus" scoped>
+.el-form
+	padding-bottom 100px;
+.el-footer 
+	background-color #A3C0D1;
+	color #333;
+	line-height 60px;
+	position absolute;
+	width 100%;
+	bottom 0;
+	z-index 9999
+	margin-left -15px
+</style>

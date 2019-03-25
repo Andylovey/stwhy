@@ -1,0 +1,178 @@
+<template>
+  <div>
+    <el-form ref="DetailForm" :model="DetailForm" label-width="80px" style="margin-top:10px;margin-bottom:60px;">
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+            <el-form-item label="标题" prop="ha_title">
+                <el-input v-model="DetailForm.ha_title" readonly></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+            <el-form-item label="创建时间" prop="ha_date">
+                <el-date-picker
+                    readonly
+                    v-model="DetailForm.ha_date"
+                    type="datetime">
+                </el-date-picker>
+            </el-form-item>
+          </el-col> 
+        </el-row>
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+                <el-form-item label="内容" prop="ha_content">
+                    <!-- <quill-editor ref="DetailTextEditor"
+                        disabled
+                        class="ql-editor"
+                        v-model="DetailForm.ha_content"
+                        :options = "DetailEditorOption"
+                        style="width:800px;height:500px;overflow:scroll">
+                    </quill-editor> -->
+                    <vue-ueditor-wrap 
+                        v-model="DetailForm.ha_content" 
+                        :config="editorConfig">
+                    </vue-ueditor-wrap>
+                </el-form-item>
+          </el-col>
+        </el-row>
+    </el-form>
+
+    <el-footer>
+        <el-button type="primary" @click="goBack" size="small" icon="el-icon-arrow-left">返回</el-button>
+    </el-footer>
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+
+// 引入ueditor
+import VueUeditorWrap from 'vue-ueditor-wrap'
+
+// 引入富文本框插件
+import { quillEditor } from 'vue-quill-editor'
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.snow.css'
+import 'quill/dist/quill.bubble.css'
+
+export default {
+  name: 'componentspage1',
+  components : {
+    quillEditor,
+    VueUeditorWrap
+  },
+  data() {
+      return {
+          DetailForm : {},
+
+          DetailRules : {
+                ha_title : [{required: true,message : '请输入标题', trigger: 'blur'}],
+                ha_content : [{required: true,message : '请输入内容', trigger: 'blur'}],
+            },
+
+          DetailEditorOption : {
+          theme: 'snow',
+          boundary: document.body, 
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'header': 1 }, { 'header': 2 }],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              [{ 'script': 'sub' }, { 'script': 'super' }],
+              [{ 'indent': '-1' }, { 'indent': '+1' }],
+              [{ 'direction': 'rtl' }],
+              [{ 'size': ['small', false, 'large', 'huge'] }],
+              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'font': [] }],
+              [{ 'align': [] }],
+              ['clean'],
+              ['link', 'image', 'video']
+            ]
+          },
+          placeholder: 'Insert text here ...',
+          readOnly: false
+        },
+
+        editorConfig : {
+            // 如果需要上传功能,找后端小伙伴要服务器接口地址
+            // serverUrl: this.$config.baseUrl + 'ueditor/ueditorConfig',
+            serverUrl: `${api.dev}/api/main/ueditor/ueditorConfig`,
+            // 你的UEditor资源存放的路径,相对于打包后的index.html
+            UEDITOR_HOME_URL: '/ueditor/',
+            // UEDITOR_HOME_URL: '/ueditor/',
+            // 编辑器不自动被内容撑高
+            autoHeightEnabled: false,
+            // 工具栏是否可以浮动
+            autoFloatEnabled: false,
+            // 初始容器高度
+            initialFrameHeight: 520,
+            // 初始容器宽度
+            initialFrameWidth: 800,
+            // 关闭自动保存
+            enableAutoSave: true,
+            toolbars: [[
+                'fullscreen', 'source', '|', 'undo', 'redo', '|',
+                'bold', 'italic', 'underline', 'fontborder', 'strikethrough', 'superscript', 'subscript', 'removeformat', 'formatmatch', 'autotypeset', 'blockquote', 'pasteplain', '|', 'forecolor', 'backcolor', 'insertorderedlist', 'insertunorderedlist', 'selectall', 'cleardoc', '|',
+                'rowspacingtop', 'rowspacingbottom', 'lineheight', '|',
+                'customstyle', 'paragraph', 'fontfamily', 'fontsize', '|',
+                'directionalityltr', 'directionalityrtl', 'indent', '|',
+                'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|', 'touppercase', 'tolowercase', '|',
+                'link', 'unlink', 'anchor', '|', 'imagenone', 'imageleft', 'imageright', 'imagecenter', '|',
+                'simpleupload', 'emotion', 'pagebreak', 'template', 'background', '|',
+                'horizontal', 'date', 'time', 'spechars', 'snapscreen', 'wordimage', '|',
+                'inserttable', 'deletetable', 'insertparagraphbeforetable', 'insertrow', 'deleterow', 'insertcol', 'deletecol', 'mergecells', 'mergeright', 'mergedown', 'splittocells', 'splittorows', 'splittocols', 'charts', '|',
+                'print', 'preview', 'searchreplace', 'drafts', 'help'
+            ]],
+            readonly: true
+            },
+      }
+  },
+  methods : {
+      goBack() {
+        this.$router.back(-1);
+      },
+      getInfo() {
+          this.$http.get(`${api.dev}/p/main/houseArticle/select`,{params:{access_token:getToken(),ha_id:this.$route.params.haid}}).then(res => {
+              if(res.body.code == 200) {
+                    this.DetailForm = res.body.content;
+              }else if(res.body.code == 500) {
+                  this.$message({
+                      message: res.body.msg,
+                      type: 'error'
+                  });
+              }else if(res.body.code == 510) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+              }
+          })
+      }
+  },
+  created() {
+      this.getInfo()
+  }
+}
+</script>
+
+<style lang="stylus" scoped>
+.el-footer 
+    background-color #A3C0D1;
+    color #333;
+    line-height 60px;
+    position absolute;
+    width 100%;
+    bottom 0;
+    z-index 9999
+    margin-left -15px
+</style>

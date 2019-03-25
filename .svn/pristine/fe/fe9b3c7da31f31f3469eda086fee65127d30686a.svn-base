@@ -1,0 +1,538 @@
+<template>
+  <div>
+    <el-form ref="AddForm" :model="AddForm" label-width="80px" style="margin-top:10px;margin-bottom:60px;" :rules="AddRules">
+        <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+            <el-form-item label="名称" prop="b_name">
+            <el-input v-model="AddForm.b_name"></el-input>
+            </el-form-item>
+          </el-col>
+          <!-- <el-col :span="7">
+                <el-form-item label="代码" prop="b_code">
+                    <el-input v-model="AddForm.b_code"></el-input>
+                </el-form-item>
+          </el-col> -->
+          <el-col :span="7">
+            <el-form-item label="地区名称" prop="b_area">
+                <el-select v-model="AddForm.b_area" placeholder="请选择" style="width:100%;">
+                <el-option
+                    v-for="item in selectAreaOptions"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id">
+                </el-option>
+                </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <!-- <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+            <el-form-item label="经度" prop="b_lon">
+            <el-input v-model="AddForm.b_lon"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="7">
+            <el-form-item label="纬度" prop="b_lat">
+            <el-input v-model="AddForm.b_lat"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row> -->
+        <!-- <el-row type="flex" class="row-bg">
+          <el-col :span="7">
+            <el-form-item label="负责人" prop="b_director">
+                <el-select v-model="AddForm.b_director" multiple placeholder="请选择">
+                <el-option
+                    v-for="item in selectAdminOptions"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id">
+                </el-option>
+                </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="7">
+            <el-form-item label="地区名称" prop="b_area">
+                <el-select v-model="AddForm.b_area" placeholder="请选择">
+                <el-option
+                    v-for="item in selectAreaOptions"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id">
+                </el-option>
+                </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row> -->
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+            <el-form-item label="描述" prop="b_desc">
+            <el-input type="textarea" :rows="4" v-model="AddForm.b_desc"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+            <el-form-item label="封面图片" prop="b_cover">
+            <el-upload
+                :class="{disabled:uploadDisabled}"
+                :limit="1"
+                :action="AddUploadUrl"
+                list-type="picture-card"
+                :on-success="handleAddUploadSuccess"
+                :on-preview="handleAddPreview"
+                :on-remove="handleAddUploadRemove"
+                :file-list="AddUploadFileList">
+                <i class="el-icon-plus"></i>
+            </el-upload>
+            <el-dialog :visible.sync="AddPreviewDialogVisible">
+                <img width="100%" :src="AddPreviewDialogImageUrl" alt="">
+            </el-dialog>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+            <el-form-item label="村落图片" prop="b_village_photos">
+            <el-upload
+                :action="AddUploadUrl"
+                list-type="picture-card"
+                :on-success="handleAddUploadPhotosSuccess"
+                :on-preview="handleAddPhotosPreview"
+                :on-remove="handleAddUploadPhotosRemove"
+                :file-list="AddUploadFileListPhotos">
+                <i class="el-icon-plus"></i>
+            </el-upload>
+            <el-dialog :visible.sync="AddPreviewPhotosDialogVisible">
+                <img width="100%" :src="AddPreviewPhotosDialogImageUrl" alt="">
+            </el-dialog>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+            <el-form-item label="视频封面" prop="b_video_snapshots">
+            <el-upload
+                :action="AddUploadUrl"
+                list-type="picture-card"
+                :on-success="handleAddUploadVideoCoverSuccess"
+                :on-preview="handleAddVideoCoverPreview"
+                :on-remove="handleAddUploadVideoCoverRemove"
+                :file-list="AddUploadFileListVideoCover"
+                :on-progress="uploadOnProgress">
+                <i class="el-icon-plus"></i>
+            </el-upload>
+            <el-dialog :visible.sync="AddPreviewVideoCoverDialogVisible">
+                <img width="100%" :src="AddPreviewVideoCoverDialogImageUrl" alt="">
+            </el-dialog>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row type="flex" class="row-bg">
+          <el-col :span="14">
+            <el-form-item label="村落视频" prop="b_village_videos">
+                <!-- <el-upload
+                    ref="villageVideo"
+                    :action="AddUploadVideo"
+                    list-type="picture-card"
+                    :before-upload="beforeUploadVideo"
+                    :on-success="handleAddUploadVideoSuccess"
+                    :on-preview="handleAddVideoPreview"
+                    :on-remove="handleAddUploadVideoRemove"
+                    :file-list="AddUploadFileListVideo">
+                    <i class="el-icon-plus"></i>
+                </el-upload> -->
+                <el-button type="primary" @click="uploadVideoVisible = true">上传视频</el-button>
+                <div class="videoSourceBasePlace" style="margin-top:10px;"></div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <!-- 视频上传 -->
+      <el-dialog 
+      :visible.sync="uploadVideoVisible"
+      :close-on-click-modal="false"
+      title="上传视频"
+      width="650px">
+        <span style="width:300px;height:150px;display:inline-block" id="loadArea" v-if="loadIsShow"></span>
+        <span v-if="videoSrcIsShow" ref="videoSourceBase" id="videoSourceBase">
+            <div v-for="item in videoSrc" :key="item" style="position:relative;width:300px;height:150px;display:inline-block">
+                <video :src="item" width="300" height="150" controls="controls"></video>
+                <!-- <span v-for="item in videoSrc.length" :key="item" title="删除视频" style="cursor:pointer;position:absolute;top:0;right:0;width:20px;height:20px;z-index:999;border-radius:50%;background-color:red;text-align:center;line-height:20px;color:#fff;"> x </span> -->
+            </div>
+        </span>
+        <div class="el-upload el-upload--picture-card" style="margin-left:10px;">
+            <i class="el-icon-plus" @click="uploadVideoPlus"></i>
+        </div>
+        <input type="file" id="uploadVideo" ref="uploadVideo" @change="uploadVideoChange">
+
+        <!-- <el-button type="primary" style="position:absolute;bottom:12px;right:20px;" @click="confirmUpload">确定</el-button> -->
+      </el-dialog>
+
+      <el-footer>
+        <el-button type="primary" @click="goBack" size="small" icon="el-icon-arrow-left">返回</el-button>
+        <el-button type="primary" @click="AddSave('AddForm')" size="small" icon="el-icon-edit-outline">保存</el-button>
+      </el-footer>
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+
+import $ from 'jquery'
+
+export default {
+  name: 'componentspage1',
+  data() {
+      return {
+          AddForm : {
+            // b_code : '',
+            // b_lat : '',
+            // b_director : [],
+            b_desc : '',
+            b_cover : [],
+            b_id : '',
+            b_name : '',
+            b_area : '',
+            // b_lon : '',
+            b_village_photos : [],
+            b_video_snapshots : [],
+          },
+          AddRules : {
+              b_name : [{required: true,message : '请输入名称', trigger: 'blur'}],
+            //   b_lon : [{required: true,message : '请输入经度', trigger: 'blur'}],
+            //   b_lat : [{required: true,message : '请输入纬度', trigger: 'blur'}],
+              b_area : [{required: true,message : '请选择地区名称', trigger: 'change'}],
+              b_cover : [{required: true,message : '请上传封面图片', trigger: 'change'}],
+              b_village_photos : [{required: true,message : '请上传村落图片', trigger: 'change'}],
+              b_video_snapshots : [{required: true,message : '请上传视频封面', trigger: 'change'}],
+            //   b_village_videos : [{required: true,message : '请上传视频', trigger: 'change'}],
+          },
+          selectAdminOptions : [], // 负责人
+          selectAreaOptions : [], // 地区
+
+          AddUploadUrl : `${api.dev}/p/main/upload/image`,  // 上传图片的地址
+          AddUploadVideo : `${api.dev}/p/main/upload/video`,  // 上传图片的地址
+          AddUploadFileList : [],
+          AddPreviewDialogVisible : false,
+          AddPreviewDialogImageUrl : '',
+
+          AddUploadFileListPhotos : [],
+          AddPreviewPhotosDialogVisible : false,
+          AddPreviewPhotosDialogImageUrl : '',    
+          
+          AddUploadFileListVideoCover : [],
+          AddPreviewVideoCoverDialogVisible : false,
+          AddPreviewVideoCoverDialogImageUrl : '', 
+
+          uploadVideoVisible : false,
+          videoSrcIsShow : false,
+          videoSrc : [],
+          loadIsShow : false,
+      }
+  },
+  methods : {
+      // 获取负责人
+      getSelectAdmin() {
+        this.$http.get(`${api.dev}/p/main/drop/selectAdmin`,{params: {access_token: getToken(), type : 0}}).then(res => {
+          if(res.body.code == 200) {
+            this.selectAdminOptions = res.body.content;
+          }else if(res.body.code == 500) {
+            this.$message({
+              message: res.body.msg,
+              type: 'error'
+            });
+            removeToken();
+            setTimeout(function () {
+              window.location.href = '';
+            },2000)
+          }
+        })
+      },
+      getSelectArea() {
+          this.$http.get(`${api.dev}/p/main/drop/selectArea`,{params: {access_token: getToken(), type : 0}}).then(res => {
+                if(res.body.code == 200) {
+                    this.selectAreaOptions = res.body.content;
+                }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '';
+                    },2000)
+                }
+          })
+      },
+      // 上传成功时
+    handleAddUploadSuccess(res,file,fileList) {
+        this.AddUploadFileList.push({url: `${api.address}${res.content}`})
+        this.AddForm.b_cover = res.content
+        
+    },
+          // 放大图片
+    handleAddPreview(file) {
+        this.AddPreviewDialogVisible = true;
+        this.AddPreviewDialogImageUrl = file.url;
+    },
+    // 删除图片
+    handleAddUploadRemove(file,fileList) {
+        for(var i = 0 ; i < this.AddUploadFileList.length ; i++) {
+            if(file.url == this.AddUploadFileList[i].url) {
+                this.AddUploadFileList.splice(i,1)
+            }
+        }
+       
+    //    var reg = new RegExp(`${api.address}`);
+    //    file.url = file.url.replace(reg,'');
+
+        // for(var j = 0 ; j < this.AddForm.b_cover.length ; j++) {
+        //     if(file.url == this.AddForm.b_cover[j]) {
+        //         this.AddForm.b_cover.splice(j,1)
+        //     }
+        // }
+
+        this.AddForm.b_cover = ''
+    },
+      // 上传成功时
+    handleAddUploadPhotosSuccess(res,file,fileList) {
+        this.AddUploadFileListPhotos.push({url: `${api.address}${res.content}`})
+        this.AddForm.b_village_photos.push(res.content)
+    },
+          // 放大图片
+    handleAddPhotosPreview(file) {
+        this.AddPreviewPhotosDialogVisible = true;
+        this.AddPreviewPhotosDialogImageUrl = file.url;
+    },
+    handleAddUploadPhotosRemove(file,fileList) {
+        for(var i = 0 ; i < this.AddUploadFileListPhotos.length ; i++) {
+            if(file.url == this.AddUploadFileListPhotos[i].url) {
+                this.AddUploadFileListPhotos.splice(i,1)
+            }
+        }
+       
+       var reg = new RegExp(`${api.address}`);
+       file.url = file.url.replace(reg,'');
+
+        for(var j = 0 ; j < this.AddForm.b_village_photos.length ; j++) {
+            if(file.url == this.AddForm.b_village_photos[j]) {
+                this.AddForm.b_village_photos.splice(j,1)
+            }
+        }
+    },
+      // 上传成功时
+    handleAddUploadVideoCoverSuccess(res,file,fileList) {
+        // console.log(this.$refs.test);
+        // console.log(this.$refs.test.$children[0].$el.children[0].innerHTML);
+        // var reg = new RegExp('img');
+        // var str = this.$refs.test.$children[0].$el.children[0].innerHTML;
+        // str = str.replace(reg,'video');
+
+        // this.$refs.test.$children[0].$el.children[0].innerHTML = str;
+        // console.log(str);
+
+        this.AddUploadFileListVideoCover.push({url: `${api.address}${res.content}`})
+        this.AddForm.b_video_snapshots.push(res.content)
+    },
+          // 放大图片
+    handleAddVideoCoverPreview(file) {
+        this.AddPreviewVideoCoverDialogVisible = true;
+        this.AddPreviewVideoCoverDialogImageUrl = file.url;
+    },
+    handleAddUploadVideoCoverRemove(file,fileList) {
+        for(var i = 0 ; i < this.AddUploadFileListVideoCover.length ; i++) {
+            if(file.url == this.AddUploadFileListVideoCover[i].url) {
+                this.AddUploadFileListVideoCover.splice(i,1)
+            }
+        }
+       
+       var reg = new RegExp(`${api.address}`);
+       file.url = file.url.replace(reg,'');
+
+        for(var j = 0 ; j < this.AddForm.b_video_snapshots.length ; j++) {
+            if(file.url == this.AddForm.b_video_snapshots[j]) {
+                this.AddForm.b_video_snapshots.splice(j,1)
+            }
+        }
+    },
+    beforeUploadVideo(file) {
+        if (['video/mp4', 'video/ogg', 'video/flv','video/avi','video/wmv','video/rmvb'].indexOf(file.type) == -1) {
+            this.$message.error('请上传正确的视频格式');
+            return false;
+        }
+    },
+    // handleAddUploadVideoSuccess(res,file,fileList) {
+    //     var reg = new RegExp('img');
+    //     var video = this.$refs.villageVideo.$children[0].$el.children[0].innerHTML;
+    //     video = video.replace(reg,'video');
+
+    //     this.$refs.villageVideo.$children[0].$el.children[0].innerHTML = video;
+    // },
+    // 返回
+    goBack() {
+        this.$router.back(-1);
+    },
+    // 保存
+    AddSave(formName) {
+        this.$refs[formName].validate((valid) => {
+            if(valid) {
+                // 开启加载器
+                const loading = this.$loading({
+                    lock: true,
+                    text: '正在保存中...',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+
+                var reg = new RegExp(`${api.address}`);
+
+                // 村落图片截取字符串
+                var villageSrc = [];
+                this.AddUploadFileListPhotos.forEach(item => {
+                    villageSrc.push(item.url.replace(reg,''))
+                })
+
+                // 视频封面截取字符串
+                var videoCover = [];
+                this.AddUploadFileListVideoCover.forEach(item => {
+                    videoCover.push(item.url.replace(reg,''))
+                })
+                
+                // 视频截取字符串
+                var videoSrcSave = [];
+                this.videoSrc.forEach(item => {
+                    videoSrcSave.push(item.replace(reg,''))
+                })
+
+                var formdata = new FormData();
+                formdata.append('access_token',getToken());
+                formdata.append('b_name',this.AddForm.b_name);
+                formdata.append('b_cover',this.AddForm.b_cover);
+                // formdata.append('b_code',this.AddForm.b_code);
+                formdata.append('b_desc',this.AddForm.b_desc);
+                // formdata.append('b_director',JSON.stringify(this.AddForm.b_director));
+                formdata.append('b_area',this.AddForm.b_area);
+                formdata.append('b_village_photos',JSON.stringify(villageSrc))
+                formdata.append('b_video_snapshots',JSON.stringify(videoCover))
+                formdata.append('b_village_videos',JSON.stringify(videoSrcSave))
+                // formdata.append('b_lon',this.AddForm.b_lon);
+                // formdata.append('b_lat',this.AddForm.b_lat);
+                this.$http.post(`${api.dev}/p/main/village/save`,formdata,{emulateJSON:true}).then(res => {
+                    if(res.body.code == 200) {
+                        loading.close();
+                        this.$message({
+                            message: res.body.msg,
+                            type: 'success'
+                        });
+                        this.$router.back(-1);
+                    }else if(res.body.code == 500) {
+                        loading.close();
+                        this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                        });
+                    }else if(res.body.code == 510) {
+                        this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                        });
+                        removeToken();
+                        setTimeout(function () {
+                        window.location.href = '';
+                        },2000)
+                    }
+                })
+            }else {
+                console.log('submit error');
+                return false;
+            }
+        })
+    },
+    uploadOnProgress(e) {
+        console.log(e);
+    },
+    uploadVideoPlus() {
+        $('#uploadVideo').click();
+    },
+    uploadVideoChange(e) {
+        var _this = this;
+        var formdata = new FormData();
+        formdata.append('file',e.srcElement.files[0]);
+        $.ajax({
+            url: `${api.dev}/p/main/upload/video`,
+            type: "POST",
+            data:formdata,
+            cache:false,         //不设置缓存
+            processData: false,  // 不处理数据
+            contentType: false,   // 不设置内容类型
+            beforeSend : function () {
+                _this.loadIsShow = true;
+                setTimeout(() => {
+                    const loading = _this.$loading({
+                        lock: true,
+                        text: '正在上传中，请稍候...',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        target: document.querySelector('#loadArea')
+                    });
+                })
+            },
+            success : function(res) {
+                // 关闭loading
+                $('.el-loading-mask').hide();
+                $('.el-loading-spinner').hide();
+                _this.loadIsShow = false;
+                _this.videoSrcIsShow = true;
+                // _this.videoSrc = `${api.address}${res.content}`
+                _this.videoSrc.push(`${api.address}${res.content}`) 
+
+                // var videoDataBase = this.$refs.videoSourceBase;
+                // $('.videoSourceBasePlace').append($('#videoSourceBase'));
+                setTimeout(() => {
+                    $('.videoSourceBasePlace').append($('#videoSourceBase')[0])
+                })
+            }
+        }); 
+    },
+    // confirmUpload() {
+    //     // if(this.videoSrc.length == 0) {
+    //     //     this.$message({
+    //     //         message:'请上传视频',
+    //     //         type:'error'
+    //     //     })
+    //     // }
+    //     this.uploadVideoVisible = false;
+    //     // this.videoSrc = [];
+    //     var videoDataBase = this.$refs.videoSourceBase;
+    //     $('.videoSourceBasePlace').append(videoDataBase);
+    // }
+  },
+  created() {
+      this.getSelectAdmin()
+      this.getSelectArea()
+  },
+  computed : {
+      uploadDisabled : function () {
+          return this.AddForm.b_cover != ''
+      }
+  }
+}
+</script>
+
+<style lang="stylus" scoped>
+.el-footer 
+    background-color #A3C0D1;
+    color #333;
+    line-height 60px;
+    position absolute;
+    width 100%;
+    bottom 0;
+    z-index 9
+
+#uploadVideo
+    display none
+</style>

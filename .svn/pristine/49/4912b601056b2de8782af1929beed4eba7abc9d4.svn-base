@@ -1,0 +1,607 @@
+<template>
+	<div>
+		<el-button v-if="permissionAdd" type="primary" @click="AddDialogTableVisible = true" class="AddVillageBtn margin-bottom-10"><i class="el-icon-edit"></i> 新增</el-button>
+		<div style="float: right;">
+			<el-input v-model="searchName" placeholder="请输入角色名称进行搜索" style="width:200px" @keyup.enter.native="getInfo('search')"></el-input>
+			<el-button slot="append" icon="el-icon-search" type="primary" @keyup.enter="getInfo('search')" @click="getInfo('search')" style="margin-left:10px;">搜索</el-button>
+		</div>
+		<el-table
+			v-if="permissionShow"
+			v-loading="loading"
+			element-loading-text="拼命加载中"
+			element-loading-spinner="el-icon-loading"
+			element-loading-background="rgba(0, 0, 0, 0.8)"
+			:data="tableData"
+			border
+			style="width: 100%"
+			height="calc(100% - 160px)">
+			<el-table-column prop="role_id" label="序号" sortable align="center"  min-width="90"></el-table-column>
+			<el-table-column prop="role_name" label="角色名称" sortable align="center" min-width="160"></el-table-column>
+			<el-table-column prop="role_remark" label="备注信息" sortable align="center" min-width="240"></el-table-column>
+			<el-table-column
+				label="操作"
+				align="center"
+				min-width="180"
+				v-if="permissionEdit || permissionSet || permissionDelete">
+				<template slot-scope="scope">
+					<el-button v-if="permissionEdit" @click="handleEdit(scope.row)" type="text" size="small">编辑</el-button>
+					<el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small">删除</el-button>
+					<el-button v-if="permissionSet" @click="handleSet(scope.row)" type="text" size="small">权限设置</el-button>
+				</template>
+			</el-table-column>
+		</el-table>
+
+		<!-- 分页 -->
+		<div id="pagination">
+			<el-pagination
+				background
+				layout="prev, pager, next"
+				:total="total"
+				@current-change="handleCurrentChange">
+			</el-pagination>
+		</div>
+
+		<!-- 新建模态框 -->
+		<el-dialog 
+			:visible.sync="AddDialogTableVisible"
+			title="新建角色" 
+			top="8%"
+			width="40%"
+			@closed="cancleAddForm('AddForm')"
+			:close-on-click-modal="false">
+			<!-- 表单 -->
+			<el-form ref="AddForm" :model="AddForm" label-width="140px" :rules="AddRules">
+				<el-form-item label="角色名称" prop="role_name">
+					<el-input v-model="AddForm.role_name"></el-input>
+				</el-form-item>
+				<el-form-item label="角色说明" prop="role_remark">
+					<el-input type="textarea" v-model="AddForm.role_remark" rows="6"></el-input>
+				</el-form-item>
+				<el-form-item class="text-align-right">
+					<el-button type="primary" @click="submitAddForm('AddForm')">提交</el-button>
+					<el-button @click="cancleAddForm('AddForm')">取消</el-button>
+				</el-form-item>
+			</el-form>
+		</el-dialog>
+
+		<!-- 编辑模态框 -->
+		<el-dialog 
+			:visible.sync="EditDialogTableVisible"
+			title="修改角色" 
+			top="8%"
+			width="40%"
+			@closed="cancleEditForm('EditForm')"
+			:close-on-click-modal="false">
+			<el-form ref="EditForm" :model="EditForm" label-width="140px" :rules="EditRules">
+				<el-form-item label="角色名称" prop="role_name">
+					<el-input v-model="EditForm.role_name"></el-input>
+				</el-form-item>
+				<el-form-item label="角色说明" prop="role_remark">
+					<el-input type="textarea" v-model="EditForm.role_remark" rows="6"></el-input>
+				</el-form-item>
+				<el-form-item class="text-align-right">
+					<el-button type="primary" @click="submitEditForm('EditForm')">提交</el-button>
+					<el-button @click="cancleEditForm('EditForm')">取消</el-button>
+				</el-form-item>
+			</el-form>
+		</el-dialog>
+
+		<!-- 权限设置框 -->
+		<el-dialog 
+			:visible.sync="SetDialogTableVisible"
+			title="权限设置" 
+			top="60px"
+			width="30%"
+			@closed="cancleSetForm('SetForm')"
+			:close-on-click-modal="false">
+			<!-- 表单 -->
+			<el-form ref="SetForm" :model="SetForm" class="permissionsTree">
+				<el-form-item>
+					<el-tree
+						:data="permissionsData"
+						class="tree"
+						show-checkbox
+						accordion
+						node-key="id"
+						ref="permissionsTree"
+						@check-change="handlePermissionsData"
+						style="height: 400px; overflow-y: auto;"
+					>
+					</el-tree>	
+				</el-form-item>
+				<el-form-item class="text-align-right padding-right-12">
+					<el-button type="primary" @click="submitSetForm('SetForm')">提交</el-button>
+					<el-button @click="cancleSetForm('SetForm')">取消</el-button>
+				</el-form-item>
+			</el-form>
+		</el-dialog>
+	</div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+
+export default {
+	name: 'role',
+	data() {
+		return {
+			/* 
+			 * tableData: 表格数据
+			 * loading: 加载状态（默认为true）
+			 * total: 总条数（table数据总长度）
+			 * start: 表格分页（默认第一页）
+			 * limit: 每页显示条数
+			 * searchName: 搜索（用户名）
+			 */
+			tableData : [],
+			loading : true,
+			total: 0,
+			start : 0,
+			limit : 10,
+			searchName: '',
+			dowidth: 180,
+
+			/* 新增部分 */
+			AddDialogTableVisible : false, //默认隐藏
+			AddForm : {
+				role_name: '',
+				role_remark: '',
+			},
+			AddRules : {
+				role_name : [{required: true, message : '请输入角色名称', trigger: 'blur'}],
+			},
+
+			/* 编辑部分 */
+			EditDialogTableVisible : false, //默认隐藏
+			EditForm : {
+				role_name: '',
+				role_remark: '',
+			},
+			EditRules : {
+				role_name : [{required: true, message : '请输入角色名称', trigger: 'blur'}],
+			},
+
+			/* 权限管理 */
+			SetDialogTableVisible : false, //默认隐藏
+			SetForm : {},
+			permissionsData: [],
+
+			permissionShow: false, // 默认为false,根据权限是否显示
+			permissionEdit: false, // 默认为false,根据权限是否修改
+			permissionAdd: false, // 默认为false,根据权限是否新建
+			permissionSet: false, // 默认为false,根据权限是否可以权限管理
+			permissionDelete: false, // 默认为false,根据权限是否查看
+		}
+	},
+	methods : {
+		/* 获取权限 */
+		getSubPermission() {
+			this.$http.get(
+				`${api.dev}/p/permission/getSub`,
+				{
+					params:{
+						access_token:getToken(),
+						p_id: this.$route.params.id
+					}
+				}
+			).then(res => {
+				if(res.body.code == 200) {
+					//let count = 0;
+					res.body.content.forEach(item => {
+						if(item.p_name.indexOf('显示') > -1) {
+							this.permissionShow = true;
+						}else if(item.p_name.indexOf('修改') > -1) {
+							this.permissionEdit = true;
+							//count++;
+						}else if(item.p_name.indexOf('新建') > -1) {
+							this.permissionAdd = true;
+						}else if(item.p_name.indexOf('设置权限') > -1) {
+							this.permissionSet = true;
+							//count++;
+						}else if(item.p_name.indexOf('删除') > -1) {
+							this.permissionDelete = true;
+							//count++;
+						}
+					})
+					/*if(count >= 3){
+						this.dowidth = 230;
+					}*/
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		/* 表格数据加载 */
+		getInfo(searchName){
+			//console.log('searchName:'+searchName);
+			var searchVal = (searchName == 'search') ? this.searchName : '';
+			this.$http.post(
+				`${api.dev}/p/main/role/show`,
+				{
+					access_token: getToken(),
+					start: this.start,
+					limit: this.limit,
+					name1: searchVal
+				},
+				{emulateJSON : true}
+			).then(res => {
+				if(res.body.code == 200) {
+					this.tableData = res.body.content.records;
+					this.total = res.body.content.total;
+					this.loading = false;
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+		},
+		/* 角色修改加载 */
+		handleEdit(row) {
+			// 开启加载器
+			const loading = this.$loading({
+				lock: true,
+				text: 'Loading',
+				spinner: 'el-icon-loading',
+				background: 'rgba(0, 0, 0, 0.7)'
+			});
+			//debugger;
+			this.EditForm.role_name = row.role_name;
+			this.EditForm.role_remark = row.role_remark;
+			this.EditForm.role_id = row.role_id;
+			loading.close();
+			this.EditDialogTableVisible = true;
+		},
+		/* 权限树 */
+		buildTree(id, arry) {
+			let treeArry = new Array();
+			let newArry = new Array();
+			arry.forEach(item => {
+				if (item.p_fid == id){
+					treeArry.push({
+						id: item.p_id,
+						pid: item.p_fid,
+						label: item.p_name,
+						icon: item.p_icon,
+						children: []
+					});
+				}else{
+					newArry.push(item)
+				}
+			})
+			if (treeArry.length > 0) {
+				treeArry.forEach(item => {
+					let treeChildArry = this.buildTree(item.id, newArry);
+					if (treeChildArry.length > 0){
+						item.children = treeChildArry;
+					}
+				})
+			}
+			return treeArry;
+		},
+		/* 权限管理加载 */
+		handleSet(row){
+			// 开启加载器
+			const loading = this.$loading({
+				lock: true,
+				text: 'Loading',
+				spinner: 'el-icon-loading',
+				background: 'rgba(0, 0, 0, 0.7)'
+			});
+			//debugger;
+			this.SetForm.username = row.username;
+			this.SetForm.role_id = row.role_id;
+			this.$http.post(
+				`${api.dev}/p/main/role/selectPermission`,
+				{
+					access_token: getToken(),
+					role_id: row.role_id
+				},
+				{emulateJSON : true}
+			).then(res => {
+				if(res.body.code == 200) {
+					let all_p_Data = res.body.content.all_p;
+					this.permissionsData = this.buildTree(0, res.body.content.all_p); //权限树
+					//debugger;
+					this.loading = false;
+					this.SetDialogTableVisible = true;
+
+					if(res.body.content.select_p){
+						console.log(res.body.content.select_p.rp_p_id.split(','));
+						this.$nextTick(() => {
+							this.$refs.permissionsTree.setCheckedKeys(res.body.content.select_p.rp_p_id.split(','));
+						})
+					}
+				}else if(res.body.code == 500) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+				}else if(res.body.code == 510) {
+					this.$message({
+						message: res.body.msg,
+						type: 'error'
+					});
+					removeToken();
+					setTimeout(function () {
+						this.$router.push({path: '/login'})
+					},2000)
+				}
+			})
+			loading.close();    
+		},
+		/* 角色删除 */
+		handleDelete(row) {
+			var prompt = '您确认永久删除 ' + row.role_name + ' ？';
+			this.$confirm(prompt, '提示', {
+				type: 'warning'
+			}).then(() => {
+				this.loading = true;
+				this.$http.post(
+					`${api.dev}/p/main/role/delete`,
+					{
+						access_token : getToken() ,
+						role_id : row.role_id
+					},
+					{emulateJSON : true}
+				).then(res => {
+					if(res.body.code == 200) {
+						this.$message({
+							message: '删除成功',
+							type: 'success'
+						});
+						this.getInfo();
+					}else if(res.body.code == 500) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+					}else if(res.body.code == 510) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+						removeToken();
+						setTimeout(function () {
+							this.$router.push({path: '/login'})
+						},2000)
+					}
+				})
+			})
+		},
+		/* 权限操作 - 选择取消权限 */
+		handlePermissionsData(data, checked, indeterminate) {
+			console.log(data, checked, indeterminate);
+		},
+		/* 新增提交 */
+		submitAddForm(formName) {
+			this.$refs[formName].validate((valid) => {
+				if(valid) {
+					// 开启加载器
+					const loading = this.$loading({
+						lock: true,
+						text: '正在保存中...',
+						spinner: 'el-icon-loading',
+						background: 'rgba(0, 0, 0, 0.7)'
+					});
+					var formdata = new FormData();
+					formdata.append('access_token',getToken());
+					formdata.append('role_name',this.AddForm.role_name);
+					formdata.append('role_remark',this.AddForm.role_remark);
+
+					this.$http.post(`${api.dev}/p/main/role/save`,formdata, {emulateJSON:true}).then(res => {
+						loading.close();
+						if(res.body.code == 200) {
+							this.$message({
+								message: res.body.msg,
+								type: 'success'
+							})
+							this.AddDialogTableVisible = false;
+							this.loading = true;
+							this.getInfo();
+							this.$refs[formName].resetFields(); // 清除表单验证规则 清空表单数据
+						}else if(res.body.code == 500) {
+							this.$message({
+								message: res.body.msg,
+								type: 'error'
+							});
+						}else if(res.body.code == 510) {
+							this.$message({
+								message: res.body.msg,
+								type: 'error'
+							});
+							removeToken();
+							setTimeout(function () {
+								this.$router.push({path: '/login'})
+							},2000)
+						}
+					})
+				}
+			})
+		},
+		/* 编辑提交 */
+		submitEditForm(formName) {
+		  this.$refs[formName].validate((valid) => {
+			  if(valid) {
+					// 开启加载器
+					const loading = this.$loading({
+						lock: true,
+						text: '正在保存中...',
+						spinner: 'el-icon-loading',
+						background: 'rgba(0, 0, 0, 0.7)'
+					});
+					var formdata = new FormData();
+					formdata.append('access_token',getToken());
+					formdata.append('role_name',this.EditForm.role_name);
+					formdata.append('role_remark',this.EditForm.role_remark);
+					formdata.append('role_id',this.EditForm.role_id);
+
+					this.$http.post(
+						`${api.dev}/p/main/role/update`,
+						formdata,
+						{emulateJSON:true}
+					).then(res => {
+						loading.close();
+						if(res.body.code == 200) {
+							this.EditDialogTableVisible = false;
+							this.$refs[formName].clearValidate(); // 清除表单验证规则
+							this.$message({
+								message: res.body.msg,
+								type: 'success'
+							});
+							//this.loading = true;
+							this.getInfo();
+						}else if(res.body.code == 500) {
+							this.$message({
+								message: res.body.msg,
+								type: 'error'
+							});
+						}else if(res.body.code == 510) {
+							this.$message({
+								message: res.body.msg,
+								type: 'error'
+							});
+							removeToken();
+							setTimeout(function () {
+								this.$router.push({path: '/login'})
+							},2000)
+						}
+					})
+			  }else {
+				  console.log('error submit');
+				  return false;
+			  }
+		  })
+		},
+		/* 权限管理提交 */
+		submitSetForm(formName) {
+			// 开启加载器
+			const loading = this.$loading({
+				lock: true,
+				text: '正在保存中...',
+				spinner: 'el-icon-loading',
+				background: 'rgba(0, 0, 0, 0.7)'
+			});
+			let pidArr = this.$refs.permissionsTree.getCheckedKeys();
+			if(pidArr.length != 0){
+				var formdata = new FormData();
+				formdata.append('access_token',getToken());
+				formdata.append('role_id',parseInt(this.SetForm.role_id));
+				formdata.append('p_ids', pidArr.join(','));
+				//debugger;
+				this.$http.post(
+					`${api.dev}/p/main/role/setPermission`,
+					formdata,
+					{emulateJSON:true}
+				).then(res => {
+					loading.close();
+					if(res.body.code == 200) {
+						this.$message({
+							message: res.body.msg,
+							type: 'success'
+						});
+						//this.loading = true;
+						//this.getInfo();
+					}else if(res.body.code == 500) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+					}else if(res.body.code == 510) {
+						this.$message({
+							message: res.body.msg,
+							type: 'error'
+						});
+						removeToken();
+						setTimeout(function () {
+							this.$router.push({path: '/login'})
+						},2000)
+					}
+					this.cancleSetForm(formName);
+				})
+			}else{
+				this.$message({
+					message: '请选择权限',
+					type: 'error'
+				});
+				loading.close();
+			}
+		},
+		/* 取消新增 */
+		cancleAddForm(formName) {
+			this.AddDialogTableVisible = false;
+			this.$refs[formName].resetFields(); // 清除表单验证规则
+		},
+		/* 取消编辑 */
+		cancleEditForm(formName) {
+			this.EditDialogTableVisible = false;
+			this.$refs[formName].clearValidate(); // 清除表单验证规则
+		},
+		/* 取消权限设置 */
+		cancleSetForm(formName) {
+			this.$refs[formName].clearValidate();  // 清除表单验证规则
+			this.permissionsData = [];  // 清除权限树
+			this.$refs.permissionsTree.setCheckedKeys([]);
+			this.SetDialogTableVisible = false;
+		},
+		/* 分页 */
+		handleCurrentChange(val) {
+			this.loading = true;
+			this.start = 10 * (val - 1);
+			this.getInfo();
+		}
+	},
+	created() {
+		this.getSubPermission();
+		this.getInfo();
+	}
+}
+</script>
+
+
+<style lang="stylus" scoped>
+#pagination
+	margin-top 10px
+.tree
+	margin 0 12px;
+	padding 12px 24px 12px 18px
+	border 1px solid #ccc
+.margin-bottom-10
+	margin-bottom 10px
+.padding-right-12
+	padding-right 12px
+.text-align-right
+	text-align right;
+
+</style>
+
+<style>
+.permissionsTree .el-tree-node__content{
+	border-bottom: 1px solid #eee;
+}
+</style>

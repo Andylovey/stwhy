@@ -1,0 +1,175 @@
+<template>
+	<div>
+		<el-table
+			v-loading="loading"
+			element-loading-text="拼命加载中"
+			element-loading-spinner="el-icon-loading"
+			element-loading-background="rgba(0, 0, 0, 0.8)"
+			border
+			:data="tableData"
+			style="width: 100%"
+			height="calc(100% - 120px)"
+		>
+			<el-table-column prop="a_id" label="序号" sortable align="center" min-width="90"></el-table-column>
+			<el-table-column prop="a_type" label="文件类型" sortable align="center" min-width="160"></el-table-column>
+			<el-table-column label="文件" sortable align="center" min-width="160">
+				<template slot-scope="scope">
+					<img
+						v-if="scope.row.a_type=='图片'"
+						:src="scope.row.a_path"
+						height="34px"
+						class="showImg"
+						@click="showImg(scope.row)">
+					<video
+						v-if="scope.row.a_type=='视频'"
+						:src="scope.row.a_path"
+						height="34px"
+						@click="showImg(scope.row)">
+					</video>
+					<i
+						v-if="scope.row.a_type=='音频'"
+						class="fa fa-2x audio"
+						:class="{'fa-play-circle': !scope.row.isPlay, 'fa-pause-circle': scope.row.isPlay}"
+						@click="playAudio(scope.row)">
+					</i>
+				</template>
+			</el-table-column>
+			<el-table-column prop="a_ip" label="IP地址" sortable align="center" min-width="180"></el-table-column>
+			<el-table-column prop="a_filename" label="文件名称" sortable align="center" min-width="260"></el-table-column>
+			<el-table-column prop="a_size" label="文件大小" sortable align="center" min-width="180"></el-table-column>
+			<el-table-column prop="a_url" label="访问路径" sortable align="center" min-width="260"></el-table-column>
+			<el-table-column prop="a_create_time" label="上传时间" sortable align="center" min-width="180"></el-table-column>
+		</el-table>
+
+		<!-- 分页 -->
+		<div id="pagination">
+			<el-pagination
+				background
+				layout="prev, pager, next"
+				:total="total"
+				@current-change="handleCurrentChange">
+			</el-pagination>
+		</div>
+
+		<!-- 放大首图 -->
+		<el-dialog 
+			:visible.sync="ImgDialog"
+			:title="currentImg.a_filename" 
+
+			width="40%"
+			:close-on-click-modal="false">
+			<img v-if="currentImg.a_type=='图片'" :src="currentImg.a_path" width="100%">
+			<video v-if="currentImg.a_type=='视频'" :src="currentImg.a_path" controls="controls" autoplay width="100%"></video>
+		</el-dialog>
+
+		<audio :src="currentAudio.a_path" controls="controls" ref="audio" hidden></audio>
+	</div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 时间过滤器
+import {formatDate} from '@/filter/date.js';
+
+export default {
+	name: 'accessory',
+	data() {
+		return {
+			loading : true , // 加载条
+			tableData : [],
+			total : 0 , // 总条数
+			start : 0, // 默认第一页
+			limit : 10, // 每页10条
+			ImgDialog: false,
+			currentImg: '',
+			currentAudio: '',
+		}
+	},
+	methods : {
+		getInfo() {
+			this.$http.get(`${api.dev}/p/main/attachment/show`,{params : {access_token : getToken() , start : this.start , limit : this.limit}}).then(res => {
+				if(res.body.code == 200) {
+					res.body.content.records.forEach( i => {
+						// 先过滤类型
+						if(i.a_type == 0) {
+							i.a_type = '图片'
+						}else if(i.a_type == 1) {
+							i.a_type = '音频'
+						}else if(i.a_type == 2) {
+							i.a_type = '视频'
+						}
+						i.a_path = `${api.address}${i.a_path}`
+						// 过滤时间
+						i.a_create_time = formatDate(new Date(i.a_create_time) , 'yyyy-MM-dd hh:mm:ss')
+						i.isPlay = false
+					})
+					this.tableData = res.body.content.records;
+					this.total = res.body.content.total;
+					this.loading = false;
+				}else if(res.body.code == 500) {
+					this.$message({
+						message : res.body.msg,
+						type : 'error'
+					})
+					removeToken();
+					setTimeout(function () {
+						window.location.href = '/stwhy';
+					},2000)
+				}
+			})
+		},
+		/* 大图查看 */
+		showImg(row){
+			console.log(row);
+			this.ImgDialog = true;
+			this.currentImg = row;
+		},
+		playAudio(row){			
+			if(this.$refs.audio.paused){
+				this.currentAudio = row;
+				this.$nextTick(() => {
+					this.$refs.audio.play();
+		            row.isPlay = true;
+		            this.$refs.audio.addEventListener('ended', function () {  
+						row.isPlay = false;
+					}, false);
+				})
+	        }else{
+	            this.$refs.audio.pause();
+	            row.isPlay = false;
+	        }
+		},
+		// 分页
+		handleCurrentChange(val) {
+			this.loading = true;
+			this.start = 10 * (val - 1);
+			this.getInfo();
+		}
+	},
+	created() {
+		this.getInfo();
+	}
+}
+</script>
+
+<style lang="stylus" scoped>
+#pagination
+	margin-top 10px
+.showImg
+	vertical-align middle
+.showImg:hover
+	cursor zoom-in
+</style>
+<style>
+.el-table .cell{
+	height: 34px;
+	line-height: 34px;
+}
+.audio{
+	color: #32b177;
+	cursor: pointer;
+}
+</style>

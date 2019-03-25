@@ -1,0 +1,295 @@
+<template>
+  <div>
+    <div>
+        <router-link :to="'/vote/ballot/ballotadd/add'">
+            <el-button v-if="permissionAdd" type="primary" class="AddVillageBtn"><i class="el-icon-edit"></i> 新增</el-button>
+        </router-link>
+    </div>
+
+    <el-select v-model="id1" slot="prepend" placeholder="请选择投票类别" style="width:150px" clearable >
+        <!-- <el-option label="全部" value="null"></el-option> -->
+        <el-option label="常规" value="1"></el-option>
+        <el-option label="报名式" value="2"></el-option>
+    </el-select>
+    <el-button slot="append" icon="el-icon-search" type="primary" @click="handleSearch" style="margin-left:10px;">搜索</el-button>
+
+    <el-table
+      v-if="permissionShow"
+      v-loading="loading"
+      element-loading-text="拼命加载中"
+      element-loading-spinner="el-icon-loading"
+      element-loading-background="rgba(0, 0, 0, 0.8)"
+      border
+      :data="tableData"
+      style="width: 100%;margin-top:10px"
+      height="500">
+        <el-table-column
+          prop="vl_company"
+          label="公司名称"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+          prop="vl_name"
+          label="活动名称"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+          prop="vl_starttime"
+          label="活动开始时间"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+          prop="vl_endtime"
+          label="活动结束时间"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+          prop="vl_date"
+          label="填表日期"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+          prop="vl_type"
+          label="投票类别"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+          prop="vl_abutment"
+          label="对接人"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+          prop="vl_phone"
+          label="电话"
+          sortable
+          width="150"
+          align="center">
+       </el-table-column>
+       <el-table-column
+        fixed="right"
+        label="操作"
+        align="center"
+        width="150">
+        <template slot-scope="scope">
+            <!-- <el-button v-if="permissionDetail" @click="handleDetail(scope.row)" type="text" size="small">查看</el-button> -->
+            <!-- <el-button v-if="permissionEdit" @click="handleEdit(scope.row)" type="text" size="small">编辑</el-button> -->
+            <!-- <el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small">删除</el-button> -->
+            <router-link :to="'/vote/ballot/ballotdetail/'+scope.row.vl_id">
+                <el-button v-if="permissionDetail" type="text" size="small">查看</el-button>
+            </router-link>
+            <router-link :to="'/vote/ballot/ballotedit/'+scope.row.vl_id">
+                <el-button v-if="permissionEdit" type="text" size="small" style="margin-left:10px">编辑</el-button>
+            </router-link>
+            <el-button v-if="permissionDelete" @click="handleDelete(scope.row)" type="text" size="small" style="margin-left:10px">删除</el-button>
+        </template>
+        </el-table-column>
+    </el-table>
+
+    <!-- 分页 -->
+    <div id="pagination">
+      <el-pagination
+        v-if="total!=0"
+        background
+        layout="prev, pager, next"
+        :total="total"
+        @current-change="handleCurrentChange">
+      </el-pagination>
+    </div>
+
+    <!-- 查看详情的模态框 -->
+    <el-dialog
+      :visible.sync="DetailDialogTableVisible"
+      title="投票管理详情"
+      top="20px" 
+      :close-on-click-modal="false">
+      <!-- 表单 -->
+      <el-form ref="DetailForm" :model="DetailForm" label-width="80px">
+            <el-row type="flex" class="row-bg">
+                <el-col :span="12">
+                    <el-form-item label="签约企业名称" prop="ep_name">
+                        <el-input style="width:16em"></el-input>
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="签约企业名称" prop="ep_name">
+                        <el-input style="width:16em"></el-input>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+// 引入接口
+import api from '@/api/api.js'
+// 获取token
+import { getToken , removeToken } from '@/utils/auth'
+// 时间过滤器
+import {formatDate} from '@/filter/date.js';
+
+export default {
+  name: 'ballot',
+  data() {
+      return {
+        // 权限按钮控制
+        permissionShow : false,
+        permissionAdd : false,
+        permissionEdit : false,
+        permissionDelete : false,
+        permissionDetail : false,
+        permissionCreate : false,
+        
+        loading: true, // 默认加载条
+        tableData : [],
+        total : 0, // 总条数
+        start : 0, // 默认为0
+        limit : 10, // 默认为10
+        id1 : null, // 默认为null,即全部 投票类别
+
+        // 查看详情的数据
+        DetailDialogTableVisible : false, // 详情框默认的模态框
+        DetailForm : {
+            
+        }
+      }
+  },
+  methods : {
+      getSubPermission() {
+          this.$http.get(`${api.dev}/p/permission/getSub`,{params: {access_token : getToken(), p_id : this.$route.params.id}}).then(res => {
+              if(res.body.code == 200) {
+                res.body.content.forEach(item => {
+                    if(item.p_name.indexOf('显示') > -1) {
+                        this.permissionShow = true;
+                    }else if(item.p_name.indexOf('新建') > -1) {
+                        this.permissionAdd = true
+                    }else if(item.p_name.indexOf('修改') > -1) {
+                        this.permissionEdit = true
+                    }else if(item.p_name.indexOf('删除') > -1) {
+                        this.permissionDelete = true
+                    }else if(item.p_name.indexOf('查看') > -1) {
+                        this.permissionDetail = true
+                    }else if(item.p_name.indexOf('生成') > -1) {
+                        this.permissionCreate = true
+                    }
+                })
+              }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '/stwhy';
+                },2000) 
+              }
+          })
+      },
+      getInfo() {
+        this.$http.post(`${api.dev}/p/vote/manager/show`,{access_token: getToken(),start:this.start,limit:this.limit,id1: this.id1},{emulateJSON:true}).then(res => {
+            if(res.body.code == 200) {
+                res.body.content.records.forEach(item => {
+                    if(item.vl_type == 1) {
+                        item.vl_type = '常规'
+                    }else if(item.vl_type == 2) {
+                        item.vl_type = '报名式'
+                    }
+
+                    item.vl_starttime = formatDate(new Date(item.vl_starttime),'yyyy-MM-dd')
+                    item.vl_endtime = formatDate(new Date(item.vl_endtime),'yyyy-MM-dd')
+                    item.vl_date = formatDate(new Date(item.vl_date),'yyyy-MM-dd')
+                })
+                this.tableData = res.body.content.records;
+                this.total = res.body.content.total;
+                this.loading = false;
+            }else if(res.body.code == 500) {
+                this.$message({
+                    message: res.body.msg,
+                    type: 'error'
+                });
+                removeToken();
+                setTimeout(function () {
+                    window.location.href = '/stwhy';
+                },2000) 
+            }
+        })
+      },
+      // 处理查看操作
+      handleDetail(row) {
+          this.DetailDialogTableVisible = true;
+      },
+      // 处理删除操作
+      handleDelete(row) {
+          this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+            // cancelButtonClass: 'btn-custom-cancel',
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+              this.loading = true;
+              this.$http.post(`${api.dev}/p/vote/manager/delete`,{access_token:getToken(),vl_id: row.vl_id},{emulateJSON: true}).then(res => {
+                  if(res.body.code == 200) {
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    this.getInfo();
+                  }else if(res.body.code == 500) {
+                    this.$message({
+                        message: res.body.msg,
+                        type: 'error'
+                    });
+                    removeToken();
+                    setTimeout(function () {
+                        window.location.href = '/stwhy';
+                    },2000) 
+                  }
+              })
+          })
+      },
+      // 搜索
+      handleSearch() {
+          this.loading = true;
+          this.getInfo();
+      },
+      // 分页
+        handleCurrentChange(val) {
+            this.loading = true;
+            this.start = 10 * (val - 1);
+            this.getInfo();
+        }
+  },
+  created() {
+      this.getSubPermission();
+      this.getInfo();
+  }
+}
+</script>
+
+<style>
+.btn-custom-cancel {
+  float: right;
+  margin-left: 10px;
+}
+</style>
+
+
+<style lang="stylus" scoped>
+#pagination
+  margin-top 10px
+</style>
