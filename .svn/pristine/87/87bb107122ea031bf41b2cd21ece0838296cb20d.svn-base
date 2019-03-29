@@ -1,6 +1,0 @@
-export default {
-    // dev : 'http://oa.ea-mall.com:51889/CulturalCloud',
-    // dev : 'http://a039ujztts.51http.tech/CulturalCloud',
-    dev : 'http://14.18.111.74:8686/CulturalCloud',
-    address : 'http://oa.ea-mall.com:51889'
-}

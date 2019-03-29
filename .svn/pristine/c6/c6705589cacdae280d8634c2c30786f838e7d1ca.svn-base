@@ -1,8 +1,0 @@
-module.exports = {
-    dev : 'http://oa.ea-mall.com:51889/CulturalCloud',
-    address : 'http://oa.ea-mall.com:51889'
-}
-// module.exports = {
-//     dev : 'http://a039ujztts.51http.tech/CulturalCloud',
-//     address : 'http://oa.ea-mall.com:51889'
-// }
